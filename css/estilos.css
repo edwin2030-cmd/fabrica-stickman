@@ -1,0 +1,68 @@
+/* ==========================================================
+   Fábrica Stickman — estilos
+   Tema claro de papel, como un cuaderno de dibujo.
+   ========================================================== */
+
+:root {
+  --fondo: #f3efe6;
+  --tarjeta: #ffffff;
+  --borde: #e2dccf;
+  --tinta: #1d1d1f;
+  --suave: #6b6760;
+  --acento: #e63946;
+  --acento-hover: #c92f3b;
+  --radio: 14px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --dur-rapida: 150ms;
+  --fuente: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); color: var(--tinta); font-family: var(--fuente); line-height: 1.5; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+.barra { background: var(--tarjeta); border-bottom: 2px solid var(--tinta); }
+.barra-dentro { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.logo { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; }
+.logo strong { color: var(--acento); }
+.logo-cabeza { width: 22px; height: 22px; border: 3px solid var(--tinta); border-radius: 50%; background: #fff; }
+.etiqueta { font-size: .85rem; color: var(--suave); background: var(--fondo); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--borde); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+.tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); padding: 18px; box-shadow: 0 6px 24px rgba(0, 0, 0, .06); }
+
+.fila-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 14px; }
+.fila-controles:last-of-type { margin-bottom: 0; }
+.grupo-botones { display: inline-flex; border: 1px solid var(--borde); border-radius: 10px; padding: 3px; gap: 3px; background: var(--fondo); }
+.grupo-botones .btn { border-color: transparent; background: transparent; }
+.grupo-botones .btn.activo { background: var(--tarjeta); border-color: var(--borde); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+
+.btn {
+  font: inherit; font-weight: 600; font-size: .92rem; color: var(--tinta); cursor: pointer;
+  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--borde); background: var(--tarjeta);
+  transition: background var(--dur-rapida) var(--ease-out), border-color var(--dur-rapida) var(--ease-out), transform 160ms var(--ease-out);
+}
+.btn:hover { border-color: #c9c1b0; }
+.btn:active { transform: scale(0.97); }
+.btn-principal { background: var(--acento); border-color: var(--acento); color: #fff; }
+.btn-principal:hover { background: var(--acento-hover); border-color: var(--acento-hover); }
+
+.escenario { display: flex; justify-content: center; background: #ebe6da; border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+#lienzo { display: block; max-width: 100%; max-height: 68vh; border-radius: 6px; box-shadow: 0 2px 10px rgba(0, 0, 0, .12); background: #faf6ee; }
+
+#linea { flex: 1 1 200px; accent-color: var(--acento); }
+.tiempo { font-variant-numeric: tabular-nums; color: var(--suave); min-width: 64px; text-align: right; }
+
+.panel-probar { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); }
+.panel-probar label { display: block; font-size: .82rem; font-weight: 600; color: var(--suave); }
+.panel-probar select, .panel-probar input {
+  display: block; width: 100%; margin-top: 4px; font: inherit; font-size: .92rem; color: var(--tinta);
+  padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: #fff;
+}
+
+.nota { color: var(--suave); font-size: .92rem; margin-top: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { transform: none; }
+}
