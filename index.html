@@ -3,57 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fábrica Stickman — demostración del motor</title>
+  <title>Fábrica Stickman — videos de curiosidades</title>
   <meta name="description" content="Fábrica de videos de curiosidades con stickman animados.">
-  <link rel="stylesheet" href="css/estilos.css?v=1">
+  <link rel="stylesheet" href="css/estilos.css?v=2">
 </head>
 <body>
   <header class="barra">
     <div class="barra-dentro">
       <span class="logo"><span class="logo-cabeza"></span>Fábrica <strong>Stickman</strong></span>
-      <span class="etiqueta">Paso 1 · motor de animación</span>
+      <a class="etiqueta" href="demo.html">🧪 Probar el motor</a>
     </div>
   </header>
 
   <main>
     <section class="tarjeta">
+      <h1 class="titulo-seccion">1. ¿De qué trata el video?</h1>
+      <label class="campo">Tema o pregunta
+        <input type="text" id="txtTema" maxlength="200" placeholder="Por ejemplo: ¿Por qué el mar es salado?">
+      </label>
+      <div id="temasSugeridos" class="chips" hidden></div>
+
       <div class="fila-controles">
         <div class="grupo-botones" role="group" aria-label="Formato del video">
           <button type="button" class="btn activo" data-formato="16:9">▭ Horizontal 16:9</button>
           <button type="button" class="btn" data-formato="9:16">▯ Short 9:16</button>
         </div>
-        <div class="grupo-botones" role="group" aria-label="Qué mostrar">
-          <button type="button" class="btn activo" data-modo="ejemplo">🎬 Escena de ejemplo</button>
-          <button type="button" class="btn" data-modo="probar">🧪 Probar acciones</button>
-        </div>
-      </div>
-
-      <div class="escenario">
-        <canvas id="lienzo" aria-label="Vista previa de la animación"></canvas>
+        <label class="campo-en-linea">Duración
+          <select id="selMinutos">
+            <option value="1">Menos de 1 minuto</option>
+            <option value="3">Unos 3 minutos</option>
+            <option value="5">Unos 5 minutos</option>
+          </select>
+        </label>
       </div>
 
       <div class="fila-controles">
-        <button type="button" class="btn btn-principal" id="botonPlay">⏸ Pausa</button>
-        <button type="button" class="btn" id="botonInicio">⏮ Desde el inicio</button>
-        <input type="range" id="linea" min="0" max="1000" value="0" aria-label="Línea de tiempo">
-        <span id="tiempo" class="tiempo">0,0 s</span>
+        <button type="button" class="btn btn-principal" id="botonCrear">✨ Crear guion y escenas</button>
+        <button type="button" class="btn" id="botonSugerir">💡 Sugerir temas</button>
+        <button type="button" class="btn" id="botonEjemplo">📄 Ver un ejemplo</button>
       </div>
-
-      <div id="panelProbar" class="panel-probar" hidden>
-        <label>Acción<select id="selAccion"></select></label>
-        <label>Expresión<select id="selExpresion"><option value="">(la de la acción)</option></select></label>
-        <label>Accesorio<select id="selAccesorio"><option value="">Ninguno</option></select></label>
-        <label>Objeto<select id="selObjeto"><option value="">Ninguno</option></select></label>
-        <label>Fondo<select id="selFondo"></select></label>
-        <label>Dice<input type="text" id="txtDice" placeholder="Texto del bocadillo (opcional)"></label>
-      </div>
+      <p id="estado" class="estado" role="status" aria-live="polite"></p>
     </section>
 
-    <p class="nota">Todo lo que ves lo dibuja la página: sin imágenes de IA y sin límite diario. En el paso 2, Gemini escribirá
-      la curiosidad y decidirá qué hace cada muñequito en cada escena.</p>
+    <section id="seccionVideo" class="tarjeta" hidden>
+      <h2 class="titulo-seccion">2. Vista previa</h2>
+      <p id="tituloVideo" class="titulo-video"></p>
+
+      <div class="escenario">
+        <canvas id="lienzo" aria-label="Vista previa del video"></canvas>
+      </div>
+      <p id="subtitulo" class="subtitulo"></p>
+
+      <div class="fila-controles">
+        <button type="button" class="btn btn-principal" id="botonPlay">▶ Reproducir</button>
+        <button type="button" class="btn" id="botonInicio">⏮ Desde el inicio</button>
+        <input type="range" id="linea" min="0" max="1000" value="0" aria-label="Línea de tiempo">
+        <span id="tiempo" class="tiempo">0:00</span>
+      </div>
+      <p class="nota">Los tiempos son aproximados: en el paso 3 se ajustarán a la voz real.</p>
+    </section>
+
+    <section id="seccionEscenas" class="tarjeta" hidden>
+      <h2 class="titulo-seccion">3. Escenas</h2>
+      <p class="nota">Puedes corregir la narración. Si no te gusta lo que hacen los muñequitos en una escena, pulsa 🎬 para que Gemini la vuelva a dirigir.</p>
+      <ol id="listaEscenas" class="lista-escenas"></ol>
+
+      <details class="youtube">
+        <summary>Datos para YouTube</summary>
+        <label class="campo">Descripción<textarea id="txtDescripcion" rows="3"></textarea></label>
+        <p class="nota" id="txtEtiquetas"></p>
+      </details>
+    </section>
   </main>
 
-  <script src="js/stickman.js?v=1"></script>
-  <script src="js/demo.js?v=1"></script>
+  <div id="avisos" class="avisos" aria-live="polite"></div>
+
+  <script src="js/stickman.js?v=2"></script>
+  <script src="js/ia.js?v=2"></script>
+  <script src="js/director.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
 </body>
 </html>

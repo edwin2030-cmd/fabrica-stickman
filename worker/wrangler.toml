@@ -1,0 +1,12 @@
+name = "fabrica-stickman"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Única página que puede usar el intermediario (GitHub Pages).
+ORIGEN_PERMITIDO = "https://edwin2030-cmd.github.io"
+# Modelo de Gemini. "gemini-flash-latest" siempre apunta al Flash más reciente.
+MODELO = "gemini-flash-latest"
+
+# La clave NO va aquí. Se guarda como secreto con:
+#   npx wrangler secret put GEMINI_API_KEY
