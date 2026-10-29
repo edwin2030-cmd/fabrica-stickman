@@ -383,6 +383,9 @@
     proyecto = p;
     if (!p.locutor) p.locutor = Voz.LOCUTORES[0].id;
     if (!p.musica) p.musica = 'alegre';
+    if (!p.miniatura) p.miniatura = { texto: Miniatura.textoSugerido(p), color: 'amarillo', pose: 0 };
+    $('txtMiniatura').value = p.miniatura.texto;
+    $('selColorMiniatura').value = p.miniatura.color;
     $('selLocutor').value = p.locutor;
     $('selMusica').value = p.musica;
     clips = [];
@@ -392,11 +395,33 @@
     $('seccionVideo').hidden = false;
     $('seccionEscenas').hidden = false;
     $('seccionExportar').hidden = false;
+    $('seccionMiniatura').hidden = false;
     t = 0;
     recomponer();
     pintarEscenas();
+    pintarMiniatura();
     guardar();
     cargarVoces();
+  }
+
+  /* ---------------- Miniatura ---------------- */
+
+  function pintarMiniatura() {
+    Miniatura.dibujar($('lienzoMiniatura'), proyecto, proyecto.miniatura);
+  }
+
+  function descargarMiniatura() {
+    $('lienzoMiniatura').toBlob(function (archivo) {
+      var url = URL.createObjectURL(archivo);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = nombreArchivo('png').replace(/(-short)?\.png$/, '-miniatura.png');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      aviso('Miniatura guardada en tu carpeta de Descargas.');
+    }, 'image/png');
   }
 
   /* ---------------- Acciones con Gemini ---------------- */
@@ -505,6 +530,28 @@
     armarPista();
     if (reproduciendo) irA(t);
   });
+  $('selColorMiniatura').innerHTML = Miniatura.COLORES.map(function (c) {
+    return '<option value="' + c.id + '">' + escapar(c.nombre) + '</option>';
+  }).join('');
+  $('txtMiniatura').addEventListener('input', function () {
+    if (!proyecto) return;
+    proyecto.miniatura.texto = this.value.replace(/\s+/g, ' ').trim();
+    pintarMiniatura();
+  });
+  $('txtMiniatura').addEventListener('change', function () { if (proyecto) guardar(); });
+  $('selColorMiniatura').addEventListener('change', function () {
+    if (!proyecto) return;
+    proyecto.miniatura.color = this.value;
+    pintarMiniatura();
+    guardar();
+  });
+  $('botonPose').addEventListener('click', function () {
+    if (!proyecto) return;
+    proyecto.miniatura.pose = ((proyecto.miniatura.pose || 0) + 1) % Miniatura.POSES;
+    pintarMiniatura();
+    guardar();
+  });
+  $('botonMiniatura').addEventListener('click', function () { if (proyecto) descargarMiniatura(); });
   $('botonVoz').addEventListener('click', function () { if (proyecto && !ocupado) generarVoz(); });
   $('botonExportar').addEventListener('click', function () { if (proyecto && !ocupado) exportar(); });
   $('botonCancelar').addEventListener('click', function () { if (exportacion) exportacion.cancelar(); });

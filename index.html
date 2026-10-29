@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fábrica Stickman — videos de curiosidades</title>
   <meta name="description" content="Fábrica de videos de curiosidades con stickman animados.">
-  <link rel="stylesheet" href="css/estilos.css?v=6">
+  <link rel="stylesheet" href="css/estilos.css?v=7">
 </head>
 <body>
   <header class="barra">
@@ -96,16 +96,37 @@
       <p id="estadoExportar" class="estado" role="status" aria-live="polite"></p>
       <p id="notaExportar" class="nota"></p>
     </section>
+
+    <section id="seccionMiniatura" class="tarjeta" hidden>
+      <h2 class="titulo-seccion">5. Miniatura para YouTube</h2>
+      <label class="campo">Texto de la miniatura
+        <input type="text" id="txtMiniatura" maxlength="60" placeholder="Pocas palabras se leen mejor">
+      </label>
+      <div class="fila-controles">
+        <label class="campo-en-linea">Color
+          <select id="selColorMiniatura"></select>
+        </label>
+        <button type="button" class="btn" id="botonPose">🎲 Otra pose</button>
+      </div>
+      <div class="escenario">
+        <canvas id="lienzoMiniatura" aria-label="Vista previa de la miniatura"></canvas>
+      </div>
+      <div class="fila-controles">
+        <button type="button" class="btn btn-principal" id="botonMiniatura">⬇ Descargar miniatura</button>
+      </div>
+      <p class="nota">Imagen PNG de 1280×720, el tamaño que pide YouTube. Consejo: 3 a 6 palabras se leen mejor en el celular. En los Shorts, YouTube usa un fotograma del video como portada.</p>
+    </section>
   </main>
 
   <div id="avisos" class="avisos" aria-live="polite"></div>
 
-  <script src="js/stickman.js?v=6"></script>
-  <script src="js/ia.js?v=6"></script>
-  <script src="js/voz.js?v=6"></script>
-  <script src="js/musica.js?v=6"></script>
-  <script src="js/exportar.js?v=6"></script>
-  <script src="js/director.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/stickman.js?v=7"></script>
+  <script src="js/ia.js?v=7"></script>
+  <script src="js/voz.js?v=7"></script>
+  <script src="js/musica.js?v=7"></script>
+  <script src="js/exportar.js?v=7"></script>
+  <script src="js/miniatura.js?v=7"></script>
+  <script src="js/director.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>

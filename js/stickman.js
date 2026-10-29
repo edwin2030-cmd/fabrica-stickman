@@ -658,6 +658,7 @@ var Stickman = (function () {
   /* ---------------- Fondo ---------------- */
 
   function dibujarFondo(ctx, W, H, fondo) {
+    if (fondo === 'ninguno') return;   // quien llama pinta su propio fondo (miniaturas)
     var colores = { papel: PAPEL, cielo: '#e8f4fb', noche: '#1f2340', pizarra: '#f4f4f4' };
     var base = colores[fondo] || PAPEL;
     ctx.fillStyle = base;
