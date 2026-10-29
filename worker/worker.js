@@ -49,17 +49,28 @@ function sinPensamiento(cuerpo) {
   return copia;
 }
 
+// Modelos que fallaron hace poco (sin cupo o sin respuesta): se saltan un rato para
+// no esperar 25 s en cada pedido. Vive mientras el Worker siga encendido.
+var PAUSA_MS = 10 * 60 * 1000;
+var pausados = {};
+
+function enPausa(modelo) { return pausados[modelo] && Date.now() - pausados[modelo] < PAUSA_MS; }
+
 // Prueba cada modelo en orden. Ante "ocupado" (500/503) reintenta una vez;
 // ante límite (429), modelo inexistente (404) o sin respuesta a tiempo, pasa al siguiente.
 // Si un modelo no acepta apagar el "pensamiento", se repite el pedido sin esa opción.
 async function llamarGemini(env, modelos, cuerpo, limite) {
   var ultimo = { estado: 500, error: 'No hay modelos configurados' };
+  // Si todos están en pausa se prueban igual (quizá ya se recuperaron).
+  var disponibles = modelos.filter(function (m) { return !enPausa(m); });
+  if (disponibles.length) modelos = disponibles;
   for (var i = 0; i < modelos.length; i++) {
     var pedido = sinApagarPensamiento[modelos[i]] ? sinPensamiento(cuerpo) : cuerpo;
     for (var intento = 0; intento < 2; intento++) {
       var r = await pedirModelo(env, modelos[i], pedido, limite);
-      if (r.estado === 200) return r;
+      if (r.estado === 200) { delete pausados[modelos[i]]; return r; }
       ultimo = r;
+      if (r.estado === 429 || r.estado === 504) pausados[modelos[i]] = Date.now();
       if (r.estado === 400 && pedido.generationConfig.thinkingConfig) {
         // Gemini no siempre dice que el problema es esa opción ("invalid argument").
         sinApagarPensamiento[modelos[i]] = true;
