@@ -48,6 +48,7 @@
   var escenas = [], inicios = [], total = 0;   // escenas listas para dibujar y en qué segundo empieza cada una
   var t = 0, reproduciendo = false, ultimo = null, ocupado = false;
   var clips = [], pista = null, cargaVoces = 0;  // audio de cada escena y la pista completa ya unida
+  var pistaVoz = null, musica = { clave: '', buffer: null, promesa: null };
 
   function $(id) { return document.getElementById(id); }
 
@@ -72,7 +73,7 @@
 
   function bloquear(si) {
     ocupado = si;
-    ['botonCrear', 'botonSugerir', 'botonEjemplo', 'botonVoz', 'selLocutor', 'botonExportar'].forEach(function (id) { $(id).disabled = si; });
+    ['botonCrear', 'botonSugerir', 'botonEjemplo', 'botonVoz', 'selLocutor', 'selMusica', 'botonExportar'].forEach(function (id) { $(id).disabled = si; });
     document.querySelectorAll('.btn-redirigir').forEach(function (b) { b.disabled = si; });
   }
 
@@ -102,8 +103,36 @@
     total = 0;
     escenas.forEach(function (e) { inicios.push(total); total += e.duracion; });
     if (t > total) t = 0;
-    pista = clips.some(Boolean) ? Voz.unir(clips, inicios, total) : null;
+    pistaVoz = clips.some(Boolean) ? Voz.unir(clips, inicios, total) : null;
+    armarPista();
     if (reproduciendo) irA(t);
+  }
+
+  // Pista final = voz + música. La música se genera aparte (tarda un momento)
+  // y se guarda mientras no cambien el estilo ni la duración del video.
+  // Devuelve una promesa que se cumple cuando la pista ya incluye la música.
+  function armarPista() {
+    var estilo = (proyecto && proyecto.musica) || 'ninguna';
+    pista = pistaVoz;
+    if (estilo === 'ninguna') return Promise.resolve();
+    var largo = total + 1;   // igual que la pista de la voz
+    var clave = estilo + '|' + total.toFixed(2);
+    if (musica.clave === clave && musica.buffer) {
+      pista = Musica.mezclar(pistaVoz, musica.buffer, largo);
+      return Promise.resolve();
+    }
+    if (musica.clave !== clave) {
+      musica = { clave: clave, buffer: null, promesa: null };
+      musica.promesa = Musica.generar(estilo, total + 0.6).then(function (b) {
+        if (musica.clave !== clave) return;
+        musica.buffer = b;
+        armarPista();
+        if (reproduciendo) irA(t);
+      }).catch(function () {
+        aviso('No se pudo generar la música en este navegador.', 'error');
+      });
+    }
+    return musica.promesa;
   }
 
   // Salta a un segundo del video; si está sonando, el audio salta con él.
@@ -219,7 +248,7 @@
     if (!Exportar.formatoDisponible()) { aviso('Este navegador no puede grabar video. Usa Chrome o Edge en la computadora.', 'error'); return; }
     var sinVoz = proyecto.escenas.filter(function (e) { return !tieneVoz(e); }).length;
     if (sinVoz && !confirm(sinVoz === proyecto.escenas.length
-      ? 'El video todavía no tiene voz: se exportará mudo. ¿Exportar de todos modos?'
+      ? 'El video todavía no tiene voz: se exportará ' + (proyecto.musica === 'ninguna' ? 'mudo' : 'solo con música') + '. ¿Exportar de todos modos?'
       : sinVoz + ' escenas no tienen voz y quedarán en silencio. ¿Exportar de todos modos?')) return;
 
     bloquear(true);
@@ -233,18 +262,23 @@
     $('estadoExportar').textContent = '🎬 Preparando…';
     $('seccionVideo').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    var duracion = total;
-    exportacion = Exportar.grabar({
-      escenas: escenas, inicios: inicios, total: total, pista: pista,
-      base: TAMANOS[formato], escala: ESCALA_EXPORTAR[formato],
-      subtitulos: $('chkSubtitulos').checked,
-      alAvanzar: function (seg) {
-        t = seg;   // la vista previa acompaña a la grabación
-        $('progresoExportar').value = Math.round(seg / duracion * 1000);
-        $('estadoExportar').textContent = '🔴 Grabando… ' + reloj(seg) + ' de ' + reloj(duracion) + '. No cierres esta pestaña.';
-      }
-    });
-    exportacion.promesa.then(function (r) {
+    var duracion = total, cancelarAntes = false;
+    exportacion = { cancelar: function () { cancelarAntes = true; } };
+    // Primero se espera a que la música esté lista.
+    armarPista().then(function () {
+      if (cancelarAntes) throw new Error('Exportación cancelada.');
+      exportacion = Exportar.grabar({
+        escenas: escenas, inicios: inicios, total: total, pista: pista,
+        base: TAMANOS[formato], escala: ESCALA_EXPORTAR[formato],
+        subtitulos: $('chkSubtitulos').checked,
+        alAvanzar: function (seg) {
+          t = seg;   // la vista previa acompaña a la grabación
+          $('progresoExportar').value = Math.round(seg / duracion * 1000);
+          $('estadoExportar').textContent = '🔴 Grabando… ' + reloj(seg) + ' de ' + reloj(duracion) + '. No cierres esta pestaña.';
+        }
+      });
+      return exportacion.promesa;
+    }).then(function (r) {
       urlDescarga = URL.createObjectURL(r.archivo);
       var enlace = $('enlaceDescarga');
       enlace.href = urlDescarga;
@@ -348,7 +382,9 @@
   function mostrarProyecto(p) {
     proyecto = p;
     if (!p.locutor) p.locutor = Voz.LOCUTORES[0].id;
+    if (!p.musica) p.musica = 'alegre';
     $('selLocutor').value = p.locutor;
+    $('selMusica').value = p.musica;
     clips = [];
     $('txtTema').value = p.tema || '';
     $('selMinutos').value = String(p.minutos || 1);
@@ -458,6 +494,16 @@
     proyecto.locutor = this.value;
     clips = [];
     cargarVoces();
+  });
+  $('selMusica').innerHTML = Musica.LISTA.map(function (m) {
+    return '<option value="' + m.id + '">' + escapar(m.nombre) + '</option>';
+  }).join('');
+  $('selMusica').addEventListener('change', function () {
+    if (!proyecto) return;
+    proyecto.musica = this.value;
+    guardar();
+    armarPista();
+    if (reproduciendo) irA(t);
   });
   $('botonVoz').addEventListener('click', function () { if (proyecto && !ocupado) generarVoz(); });
   $('botonExportar').addEventListener('click', function () { if (proyecto && !ocupado) exportar(); });
