@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fábrica Stickman — videos de curiosidades</title>
   <meta name="description" content="Fábrica de videos de curiosidades con stickman animados.">
-  <link rel="stylesheet" href="css/estilos.css?v=7">
+  <link rel="stylesheet" href="css/estilos.css?v=8">
 </head>
 <body>
   <header class="barra">
@@ -36,6 +36,26 @@
           </select>
         </label>
       </div>
+
+      <details class="personajes" id="panelPersonajes">
+        <summary>🎨 Personajes: <span id="resumenPersonajes"></span> <span class="suave">(toca para cambiar)</span></summary>
+        <div class="personajes-cuerpo">
+          <canvas id="lienzoPersonajes" width="640" height="320" aria-label="Vista previa de los personajes"></canvas>
+          <div class="personaje-opciones">
+            <fieldset>
+              <legend>Presentador</legend>
+              <label class="campo-en-linea">Color <select id="colorPresentador"></select></label>
+              <label class="campo-en-linea">Accesorio <select id="accesorioPresentador"></select></label>
+            </fieldset>
+            <fieldset>
+              <legend>Amigo</legend>
+              <label class="campo-en-linea">Color <select id="colorAmigo"></select></label>
+              <label class="campo-en-linea">Accesorio <select id="accesorioAmigo"></select></label>
+            </fieldset>
+            <p class="nota">Se usa en todos tus videos, también en el que ya tienes abierto.</p>
+          </div>
+        </div>
+      </details>
 
       <div class="fila-controles">
         <button type="button" class="btn btn-principal" id="botonCrear">✨ Crear guion y escenas</button>
@@ -120,13 +140,13 @@
 
   <div id="avisos" class="avisos" aria-live="polite"></div>
 
-  <script src="js/stickman.js?v=7"></script>
-  <script src="js/ia.js?v=7"></script>
-  <script src="js/voz.js?v=7"></script>
-  <script src="js/musica.js?v=7"></script>
-  <script src="js/exportar.js?v=7"></script>
-  <script src="js/miniatura.js?v=7"></script>
-  <script src="js/director.js?v=7"></script>
-  <script src="js/app.js?v=7"></script>
+  <script src="js/stickman.js?v=8"></script>
+  <script src="js/ia.js?v=8"></script>
+  <script src="js/voz.js?v=8"></script>
+  <script src="js/musica.js?v=8"></script>
+  <script src="js/exportar.js?v=8"></script>
+  <script src="js/miniatura.js?v=8"></script>
+  <script src="js/director.js?v=8"></script>
+  <script src="js/app.js?v=8"></script>
 </body>
 </html>

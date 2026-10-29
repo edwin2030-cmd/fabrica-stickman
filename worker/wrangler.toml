@@ -13,5 +13,11 @@ MODELOS_RESPALDO = "gemini-flash-lite-latest"
 # Modelos de texto a voz, en orden de preferencia.
 MODELOS_VOZ = "gemini-2.5-flash-preview-tts"
 
+# Máximo de pedidos por IP y por minuto (protege el cupo de Gemini).
+[[ratelimits]]
+name = "LIMITE"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
+
 # La clave NO va aquí. Se guarda como secreto con:
 #   npx wrangler secret put GEMINI_API_KEY

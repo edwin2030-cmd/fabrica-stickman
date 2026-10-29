@@ -116,10 +116,11 @@ var Miniatura = (function () {
     var ctx = lienzo.getContext('2d');
     var c = COLORES[op.color] || COLORES.amarillo;
     var p = POSES[(op.pose || 0) % POSES.length];
+    var aspecto = (proyecto.reparto && proyecto.reparto.presentador) || { color: '#e63946', accesorio: 'lentes' };
     fondo(ctx, c);
     Stickman.dibujarEscena(ctx, {
       duracion: 1000, fondo: 'ninguno',
-      personajes: [{ id: 'presentador', x: 0.8, escala: 1.55, color: '#e63946', accesorio: 'lentes', mira: 'izquierda',
+      personajes: [{ id: 'presentador', x: 0.8, escala: 1.55, color: aspecto.color, accesorio: aspecto.accesorio, mira: 'izquierda',
         acciones: [{ accion: p.accion, dur: 1000, expresion: p.expresion }] }],
       objetos: [{ tipo: objetoPrincipal(proyecto), x: 0.63, y: 0.27, tam: 0.3, animacion: 'aparecer', desde: 0 }],
       textos: []

@@ -7,6 +7,15 @@
   'use strict';
 
   var CLAVE_PROYECTO = 'fabricaStickman.proyecto';
+  var CLAVE_REPARTO = 'fabricaStickman.reparto';
+  var COLORES_PERSONAJE = [
+    ['#e63946', 'Rojo'], ['#2a6fdb', 'Azul'], ['#2b9348', 'Verde'], ['#7b2cbf', 'Morado'], ['#f77f00', 'Naranja'],
+    ['#ff4d8d', 'Rosa'], ['#00a6a6', 'Turquesa'], ['#e9b100', 'Amarillo'], ['#8d5524', 'Café'], ['#1d1d1f', 'Negro']
+  ];
+  var NOMBRES_ACCESORIO = {
+    '': 'Ninguno', lentes: 'Lentes', gorra: 'Gorra', sombrero: 'Sombrero', corbata: 'Corbata', corona: 'Corona',
+    'moño': 'Moño', bigote: 'Bigote', audifonos: 'Audífonos', cabello: 'Cabello'
+  };
   var TAMANOS = { '16:9': [1280, 720], '9:16': [540, 960] };
   var PAUSA_FINAL = 0.8;
 
@@ -49,6 +58,7 @@
   var t = 0, reproduciendo = false, ultimo = null, ocupado = false;
   var clips = [], pista = null, cargaVoces = 0;  // audio de cada escena y la pista completa ya unida
   var pistaVoz = null, musica = { clave: '', buffer: null, promesa: null };
+  var reparto = cargarReparto();   // apariencia de los personajes (para todos los videos)
 
   function $(id) { return document.getElementById(id); }
 
@@ -92,6 +102,68 @@
       }
     } catch (e) { /* guardado dañado */ }
     return null;
+  }
+
+  /* ---------------- Personajes ---------------- */
+
+  function cargarReparto() {
+    var base = JSON.parse(JSON.stringify(Director.REPARTO));
+    try {
+      var r = JSON.parse(localStorage.getItem(CLAVE_REPARTO) || 'null');
+      ['presentador', 'amigo'].forEach(function (q) {
+        if (r && r[q] && typeof r[q].color === 'string') {
+          base[q].color = r[q].color;
+          base[q].accesorio = typeof r[q].accesorio === 'string' ? r[q].accesorio : base[q].accesorio;
+        }
+      });
+    } catch (e) { /* guardado dañado: se usan los de siempre */ }
+    return base;
+  }
+
+  function nombreColor(c) {
+    return ((COLORES_PERSONAJE.filter(function (x) { return x[0] === c; })[0]) || [c, 'personalizado'])[1].toLowerCase();
+  }
+
+  function describir(a) {
+    return nombreColor(a.color) + (a.accesorio ? ' con ' + NOMBRES_ACCESORIO[a.accesorio].toLowerCase() : '');
+  }
+
+  function dibujarPersonajes(seg) {
+    var c = $('lienzoPersonajes');
+    Stickman.dibujarEscena(c.getContext('2d'), {
+      duracion: 1e6, fondo: 'papel', objetos: [], textos: [],
+      personajes: [
+        { id: 'presentador', x: 0.3, escala: 1.6, color: reparto.presentador.color, accesorio: reparto.presentador.accesorio, mira: 'derecha',
+          acciones: [{ accion: 'saludar', dur: 1e6 }] },
+        { id: 'amigo', x: 0.72, escala: 1.6, color: reparto.amigo.color, accesorio: reparto.amigo.accesorio, mira: 'izquierda',
+          acciones: [{ accion: 'hablar', dur: 1e6 }] }
+      ]
+    }, seg, c.width, c.height);
+  }
+
+  function mostrarReparto() {
+    ['presentador', 'amigo'].forEach(function (q) {
+      var sufijo = q === 'presentador' ? 'Presentador' : 'Amigo';
+      $('color' + sufijo).value = reparto[q].color;
+      $('accesorio' + sufijo).value = reparto[q].accesorio || '';
+    });
+    $('resumenPersonajes').textContent = 'presentador ' + describir(reparto.presentador) + ' · amigo ' + describir(reparto.amigo);
+    dibujarPersonajes(0.6);
+  }
+
+  function cambiarReparto() {
+    ['presentador', 'amigo'].forEach(function (q) {
+      var sufijo = q === 'presentador' ? 'Presentador' : 'Amigo';
+      reparto[q].color = $('color' + sufijo).value;
+      reparto[q].accesorio = $('accesorio' + sufijo).value;
+    });
+    try { localStorage.setItem(CLAVE_REPARTO, JSON.stringify(reparto)); } catch (e) { /* sin espacio */ }
+    mostrarReparto();
+    if (!proyecto) return;
+    proyecto.reparto = reparto;
+    recomponer();
+    pintarMiniatura();
+    guardar();
   }
 
   /* ---------------- Vista previa ---------------- */
@@ -173,6 +245,7 @@
     }
     ultimo = ahora;
     dibujar();
+    if ($('panelPersonajes').open) dibujarPersonajes(ahora / 1000);
     requestAnimationFrame(bucle);
   }
 
@@ -381,6 +454,7 @@
 
   function mostrarProyecto(p) {
     proyecto = p;
+    p.reparto = reparto;
     if (!p.locutor) p.locutor = Voz.LOCUTORES[0].id;
     if (!p.musica) p.musica = 'alegre';
     if (!p.miniatura) p.miniatura = { texto: Miniatura.textoSugerido(p), color: 'amarillo', pose: 0 };
@@ -530,6 +604,18 @@
     armarPista();
     if (reproduciendo) irA(t);
   });
+  ['Presentador', 'Amigo'].forEach(function (sufijo) {
+    $('color' + sufijo).innerHTML = COLORES_PERSONAJE.map(function (c) {
+      return '<option value="' + c[0] + '">' + c[1] + '</option>';
+    }).join('');
+    $('accesorio' + sufijo).innerHTML = [''].concat(Stickman.ACCESORIOS).map(function (a) {
+      return '<option value="' + a + '">' + escapar(NOMBRES_ACCESORIO[a] || a) + '</option>';
+    }).join('');
+    $('color' + sufijo).addEventListener('change', cambiarReparto);
+    $('accesorio' + sufijo).addEventListener('change', cambiarReparto);
+  });
+  mostrarReparto();
+
   $('selColorMiniatura').innerHTML = Miniatura.COLORES.map(function (c) {
     return '<option value="' + c.id + '">' + escapar(c.nombre) + '</option>';
   }).join('');

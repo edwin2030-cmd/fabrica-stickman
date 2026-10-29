@@ -98,6 +98,13 @@ export default {
     if (peticion.method === 'OPTIONS') return new Response(null, { status: 204, headers: cabeceras });
     if (!permitido) return responder(403, { error: 'Origen no permitido' });
     if (peticion.method !== 'POST') return responder(405, { error: 'Solo se acepta POST' });
+    // El origen se puede falsificar fuera del navegador: además se limita cuántos
+    // pedidos hace cada IP, para que nadie pueda gastar todo el cupo de Gemini.
+    if (env.LIMITE) {
+      var ip = peticion.headers.get('CF-Connecting-IP') || 'desconocida';
+      var limite = await env.LIMITE.limit({ key: ip });
+      if (!limite.success) return responder(429, { error: 'Demasiados pedidos seguidos. Espera un minuto.' });
+    }
     if (!env.GEMINI_API_KEY) return responder(500, { error: 'Falta el secreto GEMINI_API_KEY en Cloudflare' });
 
     var cuerpo;

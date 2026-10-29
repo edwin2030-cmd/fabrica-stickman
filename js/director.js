@@ -17,7 +17,8 @@ var Director = (function () {
   var MAX_TEXTO = 40;                // caracteres máximos de un texto grande
   var ANIMACIONES = ['aparecer', 'flotar', 'latir', 'girar', 'temblar', 'caer'];
 
-  // Los dos personajes fijos del canal.
+  // Los dos personajes del canal. Su apariencia (color y accesorio) se puede
+  // cambiar desde la página: llega en plan.reparto.
   var REPARTO = {
     presentador: { id: 'presentador', color: '#e63946', accesorio: 'lentes' },
     amigo: { id: 'amigo', color: '#2a6fdb', accesorio: 'gorra' }
@@ -29,7 +30,11 @@ var Director = (function () {
     saltar: 'salta de emoción', asentir: 'dice que sí con la cabeza', negar: 'dice que no con la cabeza',
     temblar: 'tiembla de miedo o frío', señalar: 'señala hacia adelante', pensar: 'se rasca la barbilla pensando',
     celebrar: 'levanta los brazos celebrando', nose: 'se encoge de hombros', sorpresa: 'se sorprende',
-    triste: 'cabizbajo', explicar: 'explica con las manos abiertas', asustado: 'se asusta', enojado: 'se enoja'
+    triste: 'cabizbajo', explicar: 'explica con las manos abiertas', asustado: 'se asusta', enojado: 'se enoja',
+    correr: 'corre con prisa en su lugar', bailar: 'baila de alegría', aplaudir: 'aplaude', reir: 'se ríe a carcajadas',
+    llorar: 'llora tapándose la cara', comer: 'come algo', dormir: 'duerme de pie o se aburre', cruzar: 'cruza los brazos, escéptico',
+    agacharse: 'se agacha y se cubre la cabeza', mostrar: 'levanta algo para mostrarlo con orgullo',
+    verguenza: 'se tapa la cara de vergüenza', escribir: 'escribe o dibuja en la pizarra'
   };
 
   /* ---------------- Utilidades ---------------- */
@@ -223,7 +228,7 @@ var Director = (function () {
 
   // Convierte la dirección de una escena en la escena que dibuja el motor.
   // amigoAntes: si el amigo ya estaba en la escena anterior (si no, entra caminando).
-  function componerEscena(direccion, duracion, formato, amigoAntes) {
+  function componerEscena(direccion, duracion, formato, amigoAntes, reparto) {
     var lugar = LUGARES[formato] || LUGARES['16:9'];
     var d = direccion || normalizarDireccion({});
     var conAmigo = d.personajes.some(function (p) { return p.quien === 'amigo'; });
@@ -231,7 +236,8 @@ var Director = (function () {
 
     var personajes = d.personajes.map(function (p) {
       var x = disposicion[p.quien];
-      var per = { id: p.quien, x: x, color: REPARTO[p.quien].color, accesorio: REPARTO[p.quien].accesorio,
+      var aspecto = (reparto && reparto[p.quien]) || REPARTO[p.quien];
+      var per = { id: p.quien, x: x, color: aspecto.color || REPARTO[p.quien].color, accesorio: aspecto.accesorio,
         mira: p.quien === 'amigo' ? 'izquierda' : 'derecha', acciones: [] };
       var resto = duracion;
       if (p.quien === 'amigo' && !amigoAntes) {
@@ -271,7 +277,7 @@ var Director = (function () {
     var amigoAntes = false;
     return plan.escenas.map(function (e) {
       var duracion = e.duracion || duracionEstimada(e.narracion);
-      var escena = componerEscena(e.direccion, duracion, formato, amigoAntes);
+      var escena = componerEscena(e.direccion, duracion, formato, amigoAntes, plan.reparto);
       amigoAntes = escena.personajes.some(function (p) { return p.id === 'amigo'; });
       escena.narracion = e.narracion;
       return escena;
@@ -284,6 +290,7 @@ var Director = (function () {
     dirigir: dirigir,
     normalizarDireccion: normalizarDireccion,
     componer: componer,
-    duracionEstimada: duracionEstimada
+    duracionEstimada: duracionEstimada,
+    REPARTO: REPARTO
   };
 })();
