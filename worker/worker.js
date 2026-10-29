@@ -16,26 +16,59 @@ function lista(texto) {
   return String(texto || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
 }
 
+// Un pedido a un modelo, con límite de tiempo: cuando Gemini está saturado
+// a veces no responde nunca, y es mejor pasar a otro modelo.
+async function pedirModelo(env, modelo, cuerpo, limite) {
+  var control = new AbortController();
+  var reloj = setTimeout(function () { control.abort(); }, limite);
+  try {
+    var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+      body: JSON.stringify(cuerpo),
+      signal: control.signal
+    });
+    var crudo = await r.text();
+    var datos;
+    try { datos = JSON.parse(crudo); } catch (e) { datos = {}; }
+    if (r.ok) return { estado: 200, datos: datos, modelo: modelo };
+    return { estado: r.status, error: (datos.error && datos.error.message) || ('Error de Gemini ' + r.status + ': ' + crudo.slice(0, 200)) };
+  } catch (e) {
+    return { estado: 504, error: 'Gemini tardó demasiado en responder (' + modelo + ')' };
+  } finally {
+    clearTimeout(reloj);
+  }
+}
+
+// Modelos que rechazaron apagar el "pensamiento" (se recuerda mientras el Worker siga vivo).
+var sinApagarPensamiento = {};
+
+function sinPensamiento(cuerpo) {
+  var copia = JSON.parse(JSON.stringify(cuerpo));
+  delete copia.generationConfig.thinkingConfig;
+  return copia;
+}
+
 // Prueba cada modelo en orden. Ante "ocupado" (500/503) reintenta una vez;
-// ante límite (429) o modelo inexistente (404) pasa directo al siguiente.
-async function llamarGemini(env, modelos, cuerpo) {
+// ante límite (429), modelo inexistente (404) o sin respuesta a tiempo, pasa al siguiente.
+// Si un modelo no acepta apagar el "pensamiento", se repite el pedido sin esa opción.
+async function llamarGemini(env, modelos, cuerpo, limite) {
   var ultimo = { estado: 500, error: 'No hay modelos configurados' };
   for (var i = 0; i < modelos.length; i++) {
+    var pedido = sinApagarPensamiento[modelos[i]] ? sinPensamiento(cuerpo) : cuerpo;
     for (var intento = 0; intento < 2; intento++) {
-      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelos[i] + ':generateContent';
-      var r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-        body: JSON.stringify(cuerpo)
-      });
-      var crudo = await r.text();
-      var datos;
-      try { datos = JSON.parse(crudo); } catch (e) { datos = {}; }
-      if (r.ok) return { estado: 200, datos: datos, modelo: modelos[i] };
-
-      ultimo = { estado: r.status, error: (datos.error && datos.error.message) || ('Error de Gemini ' + r.status + ': ' + crudo.slice(0, 200)) };
-      if (r.status === 400 || r.status === 403) return ultimo;   // la petición o la clave están mal: no sirve reintentar
-      if (r.status !== 500 && r.status !== 503) break;            // 429, 404…: siguiente modelo
+      var r = await pedirModelo(env, modelos[i], pedido, limite);
+      if (r.estado === 200) return r;
+      ultimo = r;
+      if (r.estado === 400 && pedido.generationConfig.thinkingConfig) {
+        // Gemini no siempre dice que el problema es esa opción ("invalid argument").
+        sinApagarPensamiento[modelos[i]] = true;
+        pedido = sinPensamiento(cuerpo);
+        intento--;
+        continue;
+      }
+      if (r.estado === 400 || r.estado === 403) return r;   // la petición o la clave están mal: no sirve reintentar
+      if (r.estado !== 500 && r.estado !== 503) break;      // 429, 404, sin respuesta…: siguiente modelo
       if (intento === 0) await esperar(1500);
     }
   }
@@ -83,7 +116,7 @@ export default {
           responseModalities: ['AUDIO'],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: locutor } } }
         }
-      });
+      }, 45000);
       if (rv.estado !== 200) return responder(rv.estado, { error: rv.error });
 
       var audio = partesDe(rv.datos).filter(function (p) { return p.inlineData && p.inlineData.data; })[0];
@@ -97,11 +130,12 @@ export default {
     if (!prompt) return responder(400, { error: 'Falta el prompt' });
     if (prompt.length > 30000) return responder(413, { error: 'El prompt es demasiado largo' });
 
-    var configuracion = { temperature: 0.9 };
+    // Sin "pensamiento": para escribir guiones no hace falta y responde mucho más rápido.
+    var configuracion = { temperature: 0.9, thinkingConfig: { thinkingBudget: 0 } };
     if (cuerpo.json) configuracion.responseMimeType = 'application/json';
 
     var modelos = [env.MODELO || 'gemini-flash-latest'].concat(lista(env.MODELOS_RESPALDO));
-    var rt = await llamarGemini(env, modelos, { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: configuracion });
+    var rt = await llamarGemini(env, modelos, { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: configuracion }, 25000);
     if (rt.estado !== 200) return responder(rt.estado, { error: rt.error });
 
     var texto = partesDe(rt.datos).map(function (p) { return p.text || ''; }).join('');

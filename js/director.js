@@ -190,20 +190,19 @@ var Director = (function () {
     for (var i = 0; i < indices.length; i += ESCENAS_POR_LOTE) lotes.push(indices.slice(i, i + ESCENAS_POR_LOTE));
     var hechas = 0;
 
-    return lotes.reduce(function (cadena, lote) {
-      return cadena.then(function () {
-        return IA.pedirJSON(promptDireccion(plan, lote)).then(function (d) {
-          var lista = Array.isArray(d.escenas) ? d.escenas : [];
-          lote.forEach(function (indice, j) {
-            // Se busca por número de escena; si no viene, se usa el orden.
-            var propuesta = lista.filter(function (x) { return x && +x.escena === indice + 1; })[0] || lista[j];
-            plan.escenas[indice].direccion = normalizarDireccion(propuesta);
-          });
-          hechas += lote.length;
-          if (progreso) progreso(hechas, indices.length);
+    // Todos los lotes se piden a la vez: un video largo tarda casi lo mismo que uno corto.
+    return Promise.all(lotes.map(function (lote) {
+      return IA.pedirJSON(promptDireccion(plan, lote)).then(function (d) {
+        var lista = Array.isArray(d.escenas) ? d.escenas : [];
+        lote.forEach(function (indice, j) {
+          // Se busca por número de escena; si no viene, se usa el orden.
+          var propuesta = lista.filter(function (x) { return x && +x.escena === indice + 1; })[0] || lista[j];
+          plan.escenas[indice].direccion = normalizarDireccion(propuesta);
         });
+        hechas += lote.length;
+        if (progreso) progreso(hechas, indices.length);
       });
-    }, Promise.resolve()).then(function () { return plan; });
+    })).then(function () { return plan; });
   }
 
   /* ---------------- 4. Composición (posiciones y tiempos) ---------------- */

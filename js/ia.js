@@ -9,7 +9,7 @@ var IA = (function () {
   'use strict';
 
   var URL_INTERMEDIARIO = 'https://fabrica-stickman.pedro76porro.workers.dev/';
-  var TIEMPO_MAXIMO = 90000; // 90 segundos
+  var TIEMPO_MAXIMO = 120000; // 2 minutos (el intermediario ya cambia de modelo si uno se cuelga)
 
   function mensajeDeError(estado, texto) {
     texto = texto || '';
