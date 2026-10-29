@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fábrica Stickman — videos de curiosidades</title>
   <meta name="description" content="Fábrica de videos de curiosidades con stickman animados.">
-  <link rel="stylesheet" href="css/estilos.css?v=4">
+  <link rel="stylesheet" href="css/estilos.css?v=5">
 </head>
 <body>
   <header class="barra">
@@ -80,14 +80,28 @@
         <p class="nota" id="txtEtiquetas"></p>
       </details>
     </section>
+
+    <section id="seccionExportar" class="tarjeta" hidden>
+      <h2 class="titulo-seccion">4. Descargar el video</h2>
+      <label class="casilla"><input type="checkbox" id="chkSubtitulos" checked> Subtítulos dentro del video</label>
+      <div class="fila-controles">
+        <button type="button" class="btn btn-principal" id="botonExportar">⬇ Exportar video</button>
+        <button type="button" class="btn" id="botonCancelar" hidden>✖ Cancelar</button>
+        <a id="enlaceDescarga" class="btn" hidden>💾 Guardar de nuevo</a>
+      </div>
+      <progress id="progresoExportar" class="progreso" max="1000" value="0" hidden></progress>
+      <p id="estadoExportar" class="estado" role="status" aria-live="polite"></p>
+      <p id="notaExportar" class="nota"></p>
+    </section>
   </main>
 
   <div id="avisos" class="avisos" aria-live="polite"></div>
 
-  <script src="js/stickman.js?v=4"></script>
-  <script src="js/ia.js?v=4"></script>
-  <script src="js/voz.js?v=4"></script>
-  <script src="js/director.js?v=4"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/stickman.js?v=5"></script>
+  <script src="js/ia.js?v=5"></script>
+  <script src="js/voz.js?v=5"></script>
+  <script src="js/exportar.js?v=5"></script>
+  <script src="js/director.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

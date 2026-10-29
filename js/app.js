@@ -72,7 +72,7 @@
 
   function bloquear(si) {
     ocupado = si;
-    ['botonCrear', 'botonSugerir', 'botonEjemplo', 'botonVoz', 'selLocutor'].forEach(function (id) { $(id).disabled = si; });
+    ['botonCrear', 'botonSugerir', 'botonEjemplo', 'botonVoz', 'selLocutor', 'botonExportar'].forEach(function (id) { $(id).disabled = si; });
     document.querySelectorAll('.btn-redirigir').forEach(function (b) { b.disabled = si; });
   }
 
@@ -190,6 +190,78 @@
     $('txtEtiquetas').textContent = proyecto.etiquetas && proyecto.etiquetas.length ? 'Etiquetas: ' + proyecto.etiquetas.join(', ') : '';
     escenaMarcada = -1;
     notaVoz();
+    notaExportar();
+  }
+
+  /* ---------------- Exportar ---------------- */
+
+  var ESCALA_EXPORTAR = { '16:9': 1.5, '9:16': 2 };   // 1920×1080 y 1080×1920
+  var exportacion = null, urlDescarga = null;
+
+  function resolucion() {
+    return TAMANOS[formato].map(function (n) { return Math.round(n * ESCALA_EXPORTAR[formato]); }).join('×');
+  }
+
+  function notaExportar() {
+    var f = Exportar.formatoDisponible();
+    $('notaExportar').textContent = f
+      ? 'Se guardará en ' + f.ext.toUpperCase() + ' de ' + resolucion() + '. La grabación tarda lo mismo que dura el video (' + reloj(total) + '): deja esta pestaña abierta mientras tanto.'
+      : 'Este navegador no puede grabar video. Usa Chrome o Edge en la computadora.';
+  }
+
+  function nombreArchivo(ext) {
+    var base = (proyecto.titulo || proyecto.tema || 'video').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'video';
+    return base + (formato === '9:16' ? '-short' : '') + '.' + ext;
+  }
+
+  function exportar() {
+    if (!Exportar.formatoDisponible()) { aviso('Este navegador no puede grabar video. Usa Chrome o Edge en la computadora.', 'error'); return; }
+    var sinVoz = proyecto.escenas.filter(function (e) { return !tieneVoz(e); }).length;
+    if (sinVoz && !confirm(sinVoz === proyecto.escenas.length
+      ? 'El video todavía no tiene voz: se exportará mudo. ¿Exportar de todos modos?'
+      : sinVoz + ' escenas no tienen voz y quedarán en silencio. ¿Exportar de todos modos?')) return;
+
+    bloquear(true);
+    ponerPlay(false);
+    recomponer();
+    if (urlDescarga) { URL.revokeObjectURL(urlDescarga); urlDescarga = null; }
+    $('enlaceDescarga').hidden = true;
+    $('botonCancelar').hidden = false;
+    $('progresoExportar').hidden = false;
+    $('progresoExportar').value = 0;
+    $('estadoExportar').textContent = '🎬 Preparando…';
+    $('seccionVideo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    var duracion = total;
+    exportacion = Exportar.grabar({
+      escenas: escenas, inicios: inicios, total: total, pista: pista,
+      base: TAMANOS[formato], escala: ESCALA_EXPORTAR[formato],
+      subtitulos: $('chkSubtitulos').checked,
+      alAvanzar: function (seg) {
+        t = seg;   // la vista previa acompaña a la grabación
+        $('progresoExportar').value = Math.round(seg / duracion * 1000);
+        $('estadoExportar').textContent = '🔴 Grabando… ' + reloj(seg) + ' de ' + reloj(duracion) + '. No cierres esta pestaña.';
+      }
+    });
+    exportacion.promesa.then(function (r) {
+      urlDescarga = URL.createObjectURL(r.archivo);
+      var enlace = $('enlaceDescarga');
+      enlace.href = urlDescarga;
+      enlace.download = nombreArchivo(r.extension);
+      enlace.hidden = false;
+      enlace.click();
+      $('estadoExportar').textContent = '✅ Video listo: ' + enlace.download + ' (' + (r.archivo.size / 1048576).toFixed(1).replace('.', ',') + ' MB). Se descargó a tu carpeta de Descargas.';
+    }).catch(function (e) {
+      $('estadoExportar').textContent = '';
+      if (!/cancelada/.test(e.message)) aviso(e.message, 'error'); else aviso('Exportación cancelada.');
+    }).finally(function () {
+      exportacion = null;
+      t = 0;
+      $('botonCancelar').hidden = true;
+      $('progresoExportar').hidden = true;
+      bloquear(false);
+    });
   }
 
   /* ---------------- Voz ---------------- */
@@ -283,6 +355,7 @@
     $('tituloVideo').textContent = p.titulo;
     $('seccionVideo').hidden = false;
     $('seccionEscenas').hidden = false;
+    $('seccionExportar').hidden = false;
     t = 0;
     recomponer();
     pintarEscenas();
@@ -368,7 +441,7 @@
       formato = b.getAttribute('data-formato');
       ajustarLienzo();
       recomponer();
-      if (proyecto) guardar();
+      if (proyecto) { guardar(); notaExportar(); }
     });
   });
 
@@ -387,6 +460,8 @@
     cargarVoces();
   });
   $('botonVoz').addEventListener('click', function () { if (proyecto && !ocupado) generarVoz(); });
+  $('botonExportar').addEventListener('click', function () { if (proyecto && !ocupado) exportar(); });
+  $('botonCancelar').addEventListener('click', function () { if (exportacion) exportacion.cancelar(); });
 
   $('listaEscenas').addEventListener('click', function (e) {
     var ir = e.target.closest('.btn-ir');
