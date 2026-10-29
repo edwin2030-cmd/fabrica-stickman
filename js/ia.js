@@ -25,6 +25,27 @@ var IA = (function () {
     return 'No se pudo generar el texto: ' + (texto || 'error desconocido') + '.';
   }
 
+  // Modelos que fallaron hace poco: se avisa al intermediario para que no pierda
+  // 25 s esperándolos otra vez. { modelo: momento del fallo }
+  var CLAVE_FALLIDOS = 'fabricaStickman.modelosFallidos';
+  var PAUSA_MS = 10 * 60 * 1000;
+
+  function modelosAEvitar() {
+    try {
+      var f = JSON.parse(localStorage.getItem(CLAVE_FALLIDOS) || '{}');
+      return Object.keys(f).filter(function (m) { return Date.now() - f[m] < PAUSA_MS; });
+    } catch (e) { return []; }
+  }
+
+  function anotarFallidos(lista) {
+    if (!lista || !lista.length) return;
+    try {
+      var f = JSON.parse(localStorage.getItem(CLAVE_FALLIDOS) || '{}');
+      lista.forEach(function (m) { f[m] = Date.now(); });
+      localStorage.setItem(CLAVE_FALLIDOS, JSON.stringify(f));
+    } catch (e) { /* sin guardado: solo se pierde la optimización */ }
+  }
+
   // Envía un pedido al intermediario. Si falla, el error lleva .estado (código HTTP).
   function llamar(cuerpo) {
     if (location.protocol === 'file:') {
@@ -42,10 +63,11 @@ var IA = (function () {
     return fetch(URL_INTERMEDIARIO, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cuerpo),
+      body: JSON.stringify(Object.assign({ evitar: modelosAEvitar() }, cuerpo)),
       signal: control ? control.signal : undefined
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (datos) {
+        anotarFallidos(datos.fallidos);
         if (!r.ok || datos.error) throw fallo(r.status, datos.error);
         return datos;
       });

@@ -59,18 +59,21 @@ function enPausa(modelo) { return pausados[modelo] && Date.now() - pausados[mode
 // Prueba cada modelo en orden. Ante "ocupado" (500/503) reintenta una vez;
 // ante límite (429), modelo inexistente (404) o sin respuesta a tiempo, pasa al siguiente.
 // Si un modelo no acepta apagar el "pensamiento", se repite el pedido sin esa opción.
-async function llamarGemini(env, modelos, cuerpo, limite) {
+// "evitar": modelos que la página vio fallar hace poco (cada copia del Worker
+// tiene su propia memoria, así que la página también avisa).
+async function llamarGemini(env, modelos, cuerpo, limite, evitar) {
   var ultimo = { estado: 500, error: 'No hay modelos configurados' };
+  var fallidos = [];
   // Si todos están en pausa se prueban igual (quizá ya se recuperaron).
-  var disponibles = modelos.filter(function (m) { return !enPausa(m); });
+  var disponibles = modelos.filter(function (m) { return !enPausa(m) && (evitar || []).indexOf(m) === -1; });
   if (disponibles.length) modelos = disponibles;
   for (var i = 0; i < modelos.length; i++) {
     var pedido = sinApagarPensamiento[modelos[i]] ? sinPensamiento(cuerpo) : cuerpo;
     for (var intento = 0; intento < 2; intento++) {
       var r = await pedirModelo(env, modelos[i], pedido, limite);
-      if (r.estado === 200) { delete pausados[modelos[i]]; return r; }
+      if (r.estado === 200) { delete pausados[modelos[i]]; r.fallidos = fallidos; return r; }
       ultimo = r;
-      if (r.estado === 429 || r.estado === 504) pausados[modelos[i]] = Date.now();
+      if (r.estado === 429 || r.estado === 504) { pausados[modelos[i]] = Date.now(); fallidos.push(modelos[i]); }
       if (r.estado === 400 && pedido.generationConfig.thinkingConfig) {
         // Gemini no siempre dice que el problema es esa opción ("invalid argument").
         sinApagarPensamiento[modelos[i]] = true;
@@ -120,6 +123,7 @@ export default {
 
     var cuerpo;
     try { cuerpo = await peticion.json(); } catch (e) { return responder(400, { error: 'JSON inválido' }); }
+    var evitar = Array.isArray(cuerpo.evitar) ? cuerpo.evitar.filter(function (m) { return typeof m === 'string'; }) : [];
 
     /* ---------- Voz ---------- */
     if (typeof cuerpo.voz === 'string') {
@@ -134,13 +138,13 @@ export default {
           responseModalities: ['AUDIO'],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: locutor } } }
         }
-      }, 45000);
+      }, 45000, evitar);
       if (rv.estado !== 200) return responder(rv.estado, { error: rv.error });
 
       var audio = partesDe(rv.datos).filter(function (p) { return p.inlineData && p.inlineData.data; })[0];
       if (!audio) return responder(502, { error: 'Gemini no devolvió audio' });
       var frecuencia = +((/rate=(\d+)/.exec(audio.inlineData.mimeType || '') || [])[1]) || 24000;
-      return responder(200, { audio: audio.inlineData.data, frecuencia: frecuencia, modelo: rv.modelo });
+      return responder(200, { audio: audio.inlineData.data, frecuencia: frecuencia, modelo: rv.modelo, fallidos: rv.fallidos });
     }
 
     /* ---------- Texto ---------- */
@@ -153,10 +157,10 @@ export default {
     if (cuerpo.json) configuracion.responseMimeType = 'application/json';
 
     var modelos = [env.MODELO || 'gemini-flash-latest'].concat(lista(env.MODELOS_RESPALDO));
-    var rt = await llamarGemini(env, modelos, { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: configuracion }, 25000);
+    var rt = await llamarGemini(env, modelos, { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: configuracion }, 25000, evitar);
     if (rt.estado !== 200) return responder(rt.estado, { error: rt.error });
 
     var texto = partesDe(rt.datos).map(function (p) { return p.text || ''; }).join('');
-    return responder(200, { texto: texto, modelo: rt.modelo });
+    return responder(200, { texto: texto, modelo: rt.modelo, fallidos: rt.fallidos });
   }
 };
