@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fábrica Stickman — videos de curiosidades</title>
   <meta name="description" content="Fábrica de videos de curiosidades con stickman animados.">
-  <link rel="stylesheet" href="css/estilos.css?v=2">
+  <link rel="stylesheet" href="css/estilos.css?v=3">
 </head>
 <body>
   <header class="barra">
@@ -60,7 +60,13 @@
         <input type="range" id="linea" min="0" max="1000" value="0" aria-label="Línea de tiempo">
         <span id="tiempo" class="tiempo">0:00</span>
       </div>
-      <p class="nota">Los tiempos son aproximados: en el paso 3 se ajustarán a la voz real.</p>
+      <div class="fila-controles">
+        <label class="campo-en-linea">Voz
+          <select id="selLocutor"></select>
+        </label>
+        <button type="button" class="btn btn-principal" id="botonVoz">🎙 Generar voz</button>
+      </div>
+      <p id="notaVoz" class="nota"></p>
     </section>
 
     <section id="seccionEscenas" class="tarjeta" hidden>
@@ -78,9 +84,10 @@
 
   <div id="avisos" class="avisos" aria-live="polite"></div>
 
-  <script src="js/stickman.js?v=2"></script>
-  <script src="js/ia.js?v=2"></script>
-  <script src="js/director.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/stickman.js?v=3"></script>
+  <script src="js/ia.js?v=3"></script>
+  <script src="js/voz.js?v=3"></script>
+  <script src="js/director.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>

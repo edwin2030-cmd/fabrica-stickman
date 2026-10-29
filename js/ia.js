@@ -25,30 +25,51 @@ var IA = (function () {
     return 'No se pudo generar el texto: ' + (texto || 'error desconocido') + '.';
   }
 
-  // Pide a Gemini una respuesta en JSON y la devuelve ya convertida en objeto.
-  function pedirJSON(prompt) {
+  // Envía un pedido al intermediario. Si falla, el error lleva .estado (código HTTP).
+  function llamar(cuerpo) {
     if (location.protocol === 'file:') {
       return Promise.reject(new Error('La IA solo funciona desde tu página publicada en GitHub Pages, no abriendo el archivo en tu computadora.'));
     }
     var control = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var temporizador = control ? setTimeout(function () { control.abort(); }, TIEMPO_MAXIMO) : null;
 
+    function fallo(estado, texto) {
+      var e = new Error(mensajeDeError(estado, texto));
+      e.estado = estado;
+      return e;
+    }
+
     return fetch(URL_INTERMEDIARIO, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, json: true }),
+      body: JSON.stringify(cuerpo),
       signal: control ? control.signal : undefined
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (datos) {
-        if (!r.ok || datos.error) throw new Error(mensajeDeError(r.status, datos.error));
-        if (!datos.texto || !datos.texto.trim()) throw new Error('Gemini respondió vacío. Intenta de nuevo.');
-        return leerJSON(datos.texto);
+        if (!r.ok || datos.error) throw fallo(r.status, datos.error);
+        return datos;
       });
     }, function (e) {
-      if (e && e.name === 'AbortError') throw new Error(mensajeDeError(524));
+      if (e && e.name === 'AbortError') throw fallo(524);
       throw new Error('No se pudo conectar con el intermediario. Revisa tu conexión a internet.');
     }).finally(function () {
       if (temporizador) clearTimeout(temporizador);
+    });
+  }
+
+  // Pide a Gemini una respuesta en JSON y la devuelve ya convertida en objeto.
+  function pedirJSON(prompt) {
+    return llamar({ prompt: prompt, json: true }).then(function (datos) {
+      if (!datos.texto || !datos.texto.trim()) throw new Error('Gemini respondió vacío. Intenta de nuevo.');
+      return leerJSON(datos.texto);
+    });
+  }
+
+  // Pide la narración en audio: { audio (PCM 16 bits en base64), frecuencia }.
+  function pedirVoz(texto, locutor) {
+    return llamar({ voz: texto, locutor: locutor }).then(function (datos) {
+      if (!datos.audio) throw new Error('Gemini no devolvió audio. Intenta de nuevo.');
+      return datos;
     });
   }
 
@@ -64,5 +85,5 @@ var IA = (function () {
     }
   }
 
-  return { pedirJSON: pedirJSON, leerJSON: leerJSON };
+  return { pedirJSON: pedirJSON, pedirVoz: pedirVoz, leerJSON: leerJSON };
 })();

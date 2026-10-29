@@ -47,6 +47,7 @@
   var proyecto = null;
   var escenas = [], inicios = [], total = 0;   // escenas listas para dibujar y en qué segundo empieza cada una
   var t = 0, reproduciendo = false, ultimo = null, ocupado = false;
+  var clips = [], pista = null, cargaVoces = 0;  // audio de cada escena y la pista completa ya unida
 
   function $(id) { return document.getElementById(id); }
 
@@ -71,7 +72,7 @@
 
   function bloquear(si) {
     ocupado = si;
-    ['botonCrear', 'botonSugerir', 'botonEjemplo'].forEach(function (id) { $(id).disabled = si; });
+    ['botonCrear', 'botonSugerir', 'botonEjemplo', 'botonVoz', 'selLocutor'].forEach(function (id) { $(id).disabled = si; });
     document.querySelectorAll('.btn-redirigir').forEach(function (b) { b.disabled = si; });
   }
 
@@ -101,6 +102,14 @@
     total = 0;
     escenas.forEach(function (e) { inicios.push(total); total += e.duracion; });
     if (t > total) t = 0;
+    pista = clips.some(Boolean) ? Voz.unir(clips, inicios, total) : null;
+    if (reproduciendo) irA(t);
+  }
+
+  // Salta a un segundo del video; si está sonando, el audio salta con él.
+  function irA(seg) {
+    t = seg;
+    if (reproduciendo && pista) Voz.reproducir(pista, t); else Voz.detener();
   }
 
   function indiceEn(seg) {
@@ -129,8 +138,9 @@
 
   function bucle(ahora) {
     if (ultimo !== null && reproduciendo) {
-      t += Math.min(0.1, (ahora - ultimo) / 1000);
-      if (t > total + PAUSA_FINAL) { t = 0; }
+      var segAudio = Voz.tiempo();
+      t = segAudio !== null ? segAudio : t + Math.min(0.1, (ahora - ultimo) / 1000);
+      if (t > total + PAUSA_FINAL) irA(0);
     }
     ultimo = ahora;
     dibujar();
@@ -140,6 +150,7 @@
   function ponerPlay(si) {
     reproduciendo = si;
     $('botonPlay').textContent = si ? '⏸ Pausa' : '▶ Reproducir';
+    irA(t);
   }
 
   function ajustarLienzo() {
@@ -169,7 +180,7 @@
     $('listaEscenas').innerHTML = proyecto.escenas.map(function (e, i) {
       return '<li class="escena" data-indice="' + i + '">' +
         '<div class="escena-cabeza"><button type="button" class="btn btn-chico btn-ir" data-indice="' + i + '">▶ Escena ' + (i + 1) + '</button>' +
-        '<span class="duracion">~' + String(Director.duracionEstimada(e.narracion)).replace('.', ',') + ' s</span>' +
+        '<span class="duracion">' + (tieneVoz(e) ? '🎙 ' + coma(e.duracion) : '~' + coma(Director.duracionEstimada(e.narracion))) + ' s</span>' +
         '<button type="button" class="btn btn-chico btn-redirigir" data-indice="' + i + '" title="Volver a dirigir esta escena">🎬 Otra dirección</button></div>' +
         '<textarea class="narracion" data-indice="' + i + '" rows="2" aria-label="Narración de la escena ' + (i + 1) + '">' + escapar(e.narracion) + '</textarea>' +
         '<p class="direccion">' + escapar(resumenDireccion(e.direccion)) + '</p>' +
@@ -178,10 +189,95 @@
     $('txtDescripcion').value = proyecto.descripcion || '';
     $('txtEtiquetas').textContent = proyecto.etiquetas && proyecto.etiquetas.length ? 'Etiquetas: ' + proyecto.etiquetas.join(', ') : '';
     escenaMarcada = -1;
+    notaVoz();
+  }
+
+  /* ---------------- Voz ---------------- */
+
+  function coma(n) { return String(Math.round(n * 10) / 10).replace('.', ','); }
+
+  function tieneVoz(e) { return !!e.duracion && e.vozDe === Voz.clave(e.narracion, proyecto.locutor); }
+
+  function nombreLocutor(id) {
+    return (Voz.LOCUTORES.filter(function (l) { return l.id === id; })[0] || { nombre: id }).nombre.split(' ')[0];
+  }
+
+  function notaVoz() {
+    var n = proyecto.escenas.length;
+    var hechas = proyecto.escenas.filter(tieneVoz).length;
+    $('notaVoz').textContent = hechas === n
+      ? '🎙 Narrado con la voz de ' + nombreLocutor(proyecto.locutor) + '. Cada escena dura lo que dura su audio.'
+      : hechas
+        ? '🎙 ' + hechas + ' de ' + n + ' escenas narradas. Pulsa 🎙 Generar voz para completar las demás.'
+        : 'Sin voz todavía: los tiempos son aproximados. Pulsa 🎙 Generar voz para narrar el video.';
+  }
+
+  function ponerVoz(i, clip) {
+    var e = proyecto.escenas[i];
+    clips[i] = clip;
+    if (clip) {
+      e.duracion = Voz.duracionDe(clip);
+      e.vozDe = Voz.clave(e.narracion, proyecto.locutor);
+    } else if (e.vozDe) {
+      delete e.duracion;
+      delete e.vozDe;
+    }
+  }
+
+  // Recupera del navegador los audios ya generados (no gasta cupo de Gemini).
+  function cargarVoces() {
+    var carga = ++cargaVoces;
+    var p = proyecto;
+    return Promise.all(p.escenas.map(function (e) {
+      return Voz.leer(Voz.clave(e.narracion, p.locutor));
+    })).then(function (lista) {
+      if (carga !== cargaVoces || p !== proyecto) return;
+      lista.forEach(function (clip, i) { ponerVoz(i, clip); });
+      recomponer();
+      pintarEscenas();
+      guardar();
+    });
+  }
+
+  function generarVoz() {
+    var faltan = proyecto.escenas.map(function (e, i) { return i; }).filter(function (i) { return !tieneVoz(proyecto.escenas[i]); });
+    if (!faltan.length) { aviso('Todas las escenas ya tienen voz.'); return; }
+    var locutor = proyecto.locutor, p = proyecto;
+    bloquear(true);
+    ponerPlay(false);
+    var inicio = Date.now();
+    faltan.reduce(function (cadena, i, k) {
+      return cadena.then(function () {
+        var paso = 'escena ' + (k + 1) + ' de ' + faltan.length;
+        estado('🎙 Narrando la ' + paso + '…');
+        return Voz.obtener(p.escenas[i].narracion, locutor, function (queda) {
+          estado('⏳ Gemini pide esperar un momento (' + paso + ')… ' + queda + ' s');
+        }).then(function (clip) {
+          if (p !== proyecto || locutor !== proyecto.locutor) throw new Error('Se cambió el proyecto o la voz; pulsa 🎙 de nuevo.');
+          ponerVoz(i, clip);
+          guardar();
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      estado('✅ Voz lista en ' + Math.round((Date.now() - inicio) / 1000) + ' s. Pulsa ▶ Reproducir para escucharlo.');
+      t = 0;
+    }).catch(function (e) {
+      estado('');
+      aviso(e.message, 'error');
+    }).finally(function () {
+      if (p === proyecto) {
+        recomponer();
+        pintarEscenas();
+      }
+      bloquear(false);
+    });
   }
 
   function mostrarProyecto(p) {
     proyecto = p;
+    if (!p.locutor) p.locutor = Voz.LOCUTORES[0].id;
+    $('selLocutor').value = p.locutor;
+    clips = [];
     $('txtTema').value = p.tema || '';
     $('selMinutos').value = String(p.minutos || 1);
     $('tituloVideo').textContent = p.titulo;
@@ -191,6 +287,7 @@
     recomponer();
     pintarEscenas();
     guardar();
+    cargarVoces();
   }
 
   /* ---------------- Acciones con Gemini ---------------- */
@@ -277,7 +374,19 @@
 
   $('botonPlay').addEventListener('click', function () { ponerPlay(!reproduciendo); });
   $('botonInicio').addEventListener('click', function () { t = 0; ponerPlay(true); });
-  $('linea').addEventListener('input', function () { t = (this.value / 1000) * total; });
+  $('linea').addEventListener('input', function () { irA((this.value / 1000) * total); });
+
+  $('selLocutor').innerHTML = Voz.LOCUTORES.map(function (l) {
+    return '<option value="' + l.id + '">' + escapar(l.nombre) + '</option>';
+  }).join('');
+  $('selLocutor').addEventListener('change', function () {
+    if (!proyecto) return;
+    ponerPlay(false);
+    proyecto.locutor = this.value;
+    clips = [];
+    cargarVoces();
+  });
+  $('botonVoz').addEventListener('click', function () { if (proyecto && !ocupado) generarVoz(); });
 
   $('listaEscenas').addEventListener('click', function (e) {
     var ir = e.target.closest('.btn-ir');
@@ -293,7 +402,16 @@
     var nuevo = e.target.value.replace(/\s+/g, ' ').trim();
     if (!nuevo) { e.target.value = proyecto.escenas[i].narracion; return; }
     proyecto.escenas[i].narracion = nuevo;
+    ponerVoz(i, null);
     delete proyecto.escenas[i].duracion;
+    // Si esa frase ya se había narrado antes (por ejemplo, al deshacer un cambio), se recupera.
+    Voz.leer(Voz.clave(nuevo, proyecto.locutor)).then(function (clip) {
+      if (!clip || proyecto.escenas[i].narracion !== nuevo) return;
+      ponerVoz(i, clip);
+      recomponer();
+      pintarEscenas();
+      guardar();
+    });
     recomponer();
     pintarEscenas();
     guardar();
