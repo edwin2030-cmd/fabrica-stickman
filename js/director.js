@@ -136,7 +136,9 @@ var Director = (function () {
       '}'
     ].join('\n');
 
-    return IA.pedirJSON(prompt).then(function (d) {
+    return IA.pedirJSON(prompt, function (d) {
+      return texto(d.titulo) && Array.isArray(d.escenas) && d.escenas.some(function (e) { return e && texto(e.narracion || e.texto); });
+    }).then(function (d) {
       var lista = (Array.isArray(d.escenas) ? d.escenas : []).map(function (e) {
         return { narracion: texto(e && (e.narracion || e.texto)) };
       }).filter(function (e) { return e.narracion; });

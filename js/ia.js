@@ -79,11 +79,24 @@ var IA = (function () {
     });
   }
 
+  function errorDeFormato(mensaje) {
+    var e = new Error(mensaje || 'Gemini no respondió en el formato esperado. Intenta de nuevo.');
+    e.formato = true;
+    return e;
+  }
+
   // Pide a Gemini una respuesta en JSON y la devuelve ya convertida en objeto.
-  function pedirJSON(prompt) {
+  // "esValida" (opcional) revisa que traiga lo necesario. A veces Gemini responde
+  // mal una vez y bien a la siguiente: se reintenta solo una vez antes de avisar.
+  function pedirJSON(prompt, esValida, esReintento) {
     return llamar({ prompt: prompt, json: true }).then(function (datos) {
-      if (!datos.texto || !datos.texto.trim()) throw new Error('Gemini respondió vacío. Intenta de nuevo.');
-      return leerJSON(datos.texto);
+      if (!datos.texto || !datos.texto.trim()) throw errorDeFormato('Gemini respondió vacío. Intenta de nuevo.');
+      var d = leerJSON(datos.texto);
+      if (esValida && !esValida(d)) throw errorDeFormato();
+      return d;
+    }).catch(function (e) {
+      if (e.formato && !esReintento) return pedirJSON(prompt, esValida, true);
+      throw e;
     });
   }
 
@@ -99,11 +112,11 @@ var IA = (function () {
   function leerJSON(texto) {
     var inicio = texto.indexOf('{');
     var fin = texto.lastIndexOf('}');
-    if (inicio === -1 || fin <= inicio) throw new Error('Gemini no respondió en el formato esperado. Intenta de nuevo.');
+    if (inicio === -1 || fin <= inicio) throw errorDeFormato();
     try {
       return JSON.parse(texto.slice(inicio, fin + 1));
     } catch (e) {
-      throw new Error('Gemini no respondió en el formato esperado. Intenta de nuevo.');
+      throw errorDeFormato();
     }
   }
 
