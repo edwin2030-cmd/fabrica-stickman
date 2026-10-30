@@ -15,7 +15,9 @@ var Director = (function () {
   var ESCENAS_POR_LOTE = 8;          // escenas que dirige Gemini en cada pedido
   var MAX_DICE = 40;                 // caracteres máximos de un bocadillo
   var MAX_TEXTO = 40;                // caracteres máximos de un texto grande
-  var ANIMACIONES = ['aparecer', 'flotar', 'latir', 'girar', 'temblar', 'caer'];
+  var ANIMACIONES = ['aparecer', 'flotar', 'latir', 'girar', 'temblar', 'caer', 'rebotar', 'cruzar', 'orbitar', 'balancear', 'crecer', 'explotar'];
+  // Cómo entra el amigo cuando no estaba en la escena anterior (se van turnando).
+  var ENTRADAS = ['caminar', 'correr', 'patinar', 'caminar', 'bici', 'moonwalk'];
 
   // Los dos personajes del canal. Su apariencia (color y accesorio) se puede
   // cambiar desde la página: llega en plan.reparto.
@@ -34,8 +36,41 @@ var Director = (function () {
     correr: 'corre con prisa en su lugar', bailar: 'baila de alegría', aplaudir: 'aplaude', reir: 'se ríe a carcajadas',
     llorar: 'llora tapándose la cara', comer: 'come algo', dormir: 'duerme de pie o se aburre', cruzar: 'cruza los brazos, escéptico',
     agacharse: 'se agacha y se cubre la cabeza', mostrar: 'levanta algo para mostrarlo con orgullo',
-    verguenza: 'se tapa la cara de vergüenza', escribir: 'escribe o dibuja en la pizarra'
+    verguenza: 'se tapa la cara de vergüenza', escribir: 'escribe o dibuja en la pizarra',
+    patear: 'da una patada', boxear: 'lanza puñetazos', lanzar: 'lanza una pelota', empujar: 'empuja algo pesado',
+    jalar: 'jala de una cuerda', levantar: 'levanta una caja pesada sobre la cabeza', pesas: 'levanta pesas',
+    nadar: 'nada', volar: 'vuela como superhéroe', flotar: 'flota sin gravedad', desmayarse: 'se desmaya y cae al suelo',
+    tropezar: 'se tropieza', voltereta: 'da una voltereta en el aire', gatear: 'gatea', flexiones: 'hace flexiones',
+    meditar: 'medita flotando', escalar: 'escala hacia arriba', reverencia: 'hace una reverencia', sentarse: 'se sienta en una silla',
+    cantar: 'canta con micrófono', guitarra: 'toca la guitarra', moonwalk: 'baila el paso lunar', robot: 'baila como robot',
+    leer: 'lee un libro', telefonear: 'habla por teléfono', fotografiar: 'toma una foto', pescar: 'pesca con caña',
+    barrer: 'barre', cocinar: 'cocina con un sartén', beber: 'bebe de un vaso', brindar: 'levanta su vaso para brindar',
+    pintar: 'dibuja con un lápiz', martillar: 'martilla', excavar: 'excava con una pala', investigar: 'investiga con una lupa',
+    patinar: 'va en patineta', bici: 'pedalea en bicicleta', paraguas: 'se cubre con un paraguas', magia: 'hace magia con una varita',
+    estirarse: 'se estira y bosteza', rascarse: 'se rasca la cabeza confundido', mareado: 'está mareado',
+    victoria: 'levanta el puño de victoria', enamorado: 'está enamorado, le salen corazones',
+    cabezaExplota: 'le explota la cabeza de asombro: ideal para el dato más sorprendente', idea: 'se le ocurre una idea, aparece una bombilla',
+    dudar: 'duda, aparece un signo de pregunta', alarma: 'da la alarma agitando los brazos', susurrar: 'cuenta un secreto',
+    apuntarArriba: 'señala hacia el cielo', apuntarAbajo: 'señala hacia el suelo', mirarLejos: 'mira a lo lejos con la mano en la frente',
+    cansado: 'está agotado y jadea'
   };
+
+  var SIGNIFICADO_EFECTOS = {
+    confeti: 'celebración', lluvia: 'lluvia o agua', nieve: 'frío o invierno', burbujas: 'bajo el agua o química',
+    hojas: 'otoño o naturaleza', corazones: 'amor o salud', dinero: 'dinero o riqueza', estrellas: 'magia o algo increíble',
+    humo: 'incendio, volcán o contaminación', chispas: 'fuego o electricidad', viento: 'aire o velocidad',
+    rayos: 'tormenta o energía', explosion: 'una explosión o un dato impactante'
+  };
+
+  var SIGNIFICADO_CAMARAS = {
+    normal: 'acercamiento muy lento', acercar: 'se acerca poco a poco, para crear intriga', alejar: 'se aleja, para revelar algo grande',
+    impacto: 'acercamiento brusco, para un dato impactante', sacudir: 'tiembla, para algo peligroso o enorme',
+    paneo: 'se desliza de lado', balanceo: 'se mece suave, para sueños, mareos o el mar'
+  };
+
+  function listaCon(significados) {
+    return Object.keys(significados).map(function (k) { return k + ' (' + significados[k] + ')'; }).join(', ');
+  }
 
   /* ---------------- Utilidades ---------------- */
 
@@ -120,7 +155,7 @@ var Director = (function () {
   /* ---------------- 3. Dirección de escenas ---------------- */
 
   function promptDireccion(plan, indices) {
-    var acciones = Object.keys(SIGNIFICADO_ACCIONES).map(function (a) { return a + ' (' + SIGNIFICADO_ACCIONES[a] + ')'; }).join(', ');
+    var acciones = listaCon(SIGNIFICADO_ACCIONES);
     var escenas = indices.map(function (i) {
       return 'Escena ' + (i + 1) + ': "' + plan.escenas[i].narracion + '"';
     }).join('\n');
@@ -133,9 +168,16 @@ var Director = (function () {
       '- expresion (opcional): ' + Stickman.EXPRESIONES.join(', '),
       '- objetos (0 a 2 por escena, relacionados con lo que se dice): ' + Stickman.OBJETOS.join(', '),
       '- animacion de cada objeto: ' + ANIMACIONES.join(', '),
-      '- fondo: papel (normal), cielo (exteriores), noche (espacio o noche), pizarra (explicaciones de ciencia)',
+      '- sostiene (opcional en una acción): un objeto de la lista que lleva en la mano, mejor con "mostrar" o "señalar"',
+      '- disfraz (opcional en un personaje, solo esa escena): ' + Stickman.ACCESORIOS.join(', '),
+      '- fondo: papel (neutro), pizarra (neutro para explicar), aula, laboratorio, casa, ciudad, cielo, bosque, playa, mar (bajo el agua), desierto, nieve, atardecer, noche, espacio (en la Luna)',
+      '- efecto (opcional, en toda la escena): ' + listaCon(SIGNIFICADO_EFECTOS),
+      '- camara (opcional): ' + listaCon(SIGNIFICADO_CAMARAS),
       'Reglas:',
       '- Cada personaje hace de 1 a 3 acciones seguidas por escena, variadas y acordes a la emoción de la narración.',
+      '- Sé creativo y haz el video divertido: no repitas siempre hablar y explicar. Busca la acción o el objeto más visual para lo que se cuenta',
+      '  (si hablan del mar, que nade con fondo mar; si es de cocina, que cocine con disfraz chef).',
+      '- El fondo debe mostrar dónde ocurre lo que se cuenta. Usa efecto y camara solo cuando sumen, no en todas las escenas.',
       '- "dice" es opcional: un bocadillo corto (máximo 6 palabras) que NO repite la narración. Úsalo solo en algunas escenas.',
       '- "texto" es opcional: una frase o cifra grande en pantalla (máximo 5 palabras). Si la escena tiene una cifra clave,',
       '  ponla con "contar": true para que el número suba contando (ejemplo: "384.400 km").',
@@ -146,7 +188,9 @@ var Director = (function () {
       '{"escenas": [{',
       '  "escena": 1,',
       '  "fondo": "papel",',
-      '  "personajes": [{"quien": "presentador", "acciones": [{"accion": "explicar", "expresion": "feliz", "dice": "¡Mira esto!"}]}],',
+      '  "efecto": "estrellas",',
+      '  "camara": "acercar",',
+      '  "personajes": [{"quien": "presentador", "disfraz": "astronauta", "acciones": [{"accion": "mostrar", "sostiene": "telescopio", "expresion": "feliz", "dice": "¡Mira esto!"}]}],',
       '  "objetos": [{"tipo": "luna", "animacion": "flotar"}],',
       '  "texto": {"texto": "384.400 km", "contar": true}',
       '}]}'
@@ -165,11 +209,14 @@ var Director = (function () {
         a = a || {};
         var r = { accion: elegir(a.accion, acciones, 'hablar') };
         if (Stickman.EXPRESIONES.indexOf(a.expresion) !== -1) r.expresion = a.expresion;
+        if (Stickman.OBJETOS.indexOf(a.sostiene) !== -1) r.sostiene = a.sostiene;
         if (texto(a.dice)) r.dice = recortar(a.dice, MAX_DICE);
         return r;
       });
       if (!lista.length) lista = [{ accion: 'hablar' }];
-      personajes.push({ quien: p.quien, acciones: lista });
+      var per = { quien: p.quien, acciones: lista };
+      if (Stickman.ACCESORIOS.indexOf(p.disfraz) !== -1) per.disfraz = p.disfraz;
+      personajes.push(per);
     });
     if (!personajes.some(function (p) { return p.quien === 'presentador'; })) {
       personajes.unshift({ quien: 'presentador', acciones: [{ accion: 'explicar' }] });
@@ -183,6 +230,8 @@ var Director = (function () {
     });
 
     var r = { fondo: elegir(d.fondo, Stickman.FONDOS, 'papel'), personajes: personajes, objetos: objetos };
+    if (Stickman.EFECTOS.indexOf(d.efecto) !== -1) r.efecto = d.efecto;
+    if (d.camara !== 'normal' && Stickman.CAMARAS.indexOf(d.camara) !== -1) r.camara = d.camara;
     var tx = d.texto && typeof d.texto === 'object' ? d.texto : { texto: d.texto };
     if (texto(tx.texto)) r.texto = { texto: recortar(tx.texto, MAX_TEXTO), contar: tx.contar === true && /\d/.test(tx.texto) };
     return r;
@@ -228,7 +277,8 @@ var Director = (function () {
 
   // Convierte la dirección de una escena en la escena que dibuja el motor.
   // amigoAntes: si el amigo ya estaba en la escena anterior (si no, entra caminando).
-  function componerEscena(direccion, duracion, formato, amigoAntes, reparto) {
+  // numero: cuál escena es (para que las entradas del amigo se vayan turnando).
+  function componerEscena(direccion, duracion, formato, amigoAntes, reparto, numero) {
     var lugar = LUGARES[formato] || LUGARES['16:9'];
     var d = direccion || normalizarDireccion({});
     var conAmigo = d.personajes.some(function (p) { return p.quien === 'amigo'; });
@@ -237,19 +287,20 @@ var Director = (function () {
     var personajes = d.personajes.map(function (p) {
       var x = disposicion[p.quien];
       var aspecto = (reparto && reparto[p.quien]) || REPARTO[p.quien];
-      var per = { id: p.quien, x: x, color: aspecto.color || REPARTO[p.quien].color, accesorio: aspecto.accesorio,
+      var per = { id: p.quien, x: x, color: aspecto.color || REPARTO[p.quien].color, accesorio: conDisfraz(aspecto.accesorio, p.disfraz),
         mira: p.quien === 'amigo' ? 'izquierda' : 'derecha', acciones: [] };
       var resto = duracion;
       if (p.quien === 'amigo' && !amigoAntes) {
         var entrada = Math.min(1.6, duracion * 0.35);
         per.x = 1.15;
-        per.acciones.push({ accion: 'caminar', hacia: x, dur: entrada });
+        per.acciones.push({ accion: ENTRADAS[(numero || 0) % ENTRADAS.length], hacia: x, dur: entrada });
         resto -= entrada;
       }
       var cada = resto / p.acciones.length;
       p.acciones.forEach(function (a) {
         var paso = { accion: a.accion, dur: cada };
         if (a.expresion) paso.expresion = a.expresion;
+        if (a.sostiene) paso.sostiene = a.sostiene;
         if (a.dice) paso.dice = a.dice;
         if (p.quien === 'amigo') paso.mira = 'izquierda';
         per.acciones.push(paso);
@@ -268,20 +319,36 @@ var Director = (function () {
     if (d.texto) textos.push({ texto: d.texto.texto, x: 0.5, y: lugar.texto.y, tam: lugar.texto.tam,
       desde: 0.5, contar: d.texto.contar, color: d.texto.contar ? '#e63946' : undefined });
 
-    return { duracion: duracion, fondo: d.fondo, personajes: personajes, objetos: objetos, textos: textos };
+    return { duracion: duracion, fondo: d.fondo, efecto: d.efecto, camara: d.camara, personajes: personajes, objetos: objetos, textos: textos };
+  }
+
+  // El accesorio de siempre más el disfraz de la escena. Dos sombreros no caben
+  // en la misma cabeza: el disfraz le gana al sombrero de siempre.
+  function conDisfraz(accesorio, disfraz) {
+    if (!disfraz || disfraz === accesorio) return accesorio;
+    if (accesorio && Stickman.SOMBREROS.indexOf(accesorio) !== -1 && Stickman.SOMBREROS.indexOf(disfraz) !== -1) return disfraz;
+    return accesorio ? [accesorio, disfraz] : disfraz;
   }
 
   // Todas las escenas del video listas para dibujar.
   // Cada escena usa e.duracion si ya existe (audio real) o una estimación.
   function componer(plan, formato) {
-    var amigoAntes = false;
-    return plan.escenas.map(function (e) {
+    var amigoAntes = false, transiciones = 0;
+    var lista = plan.escenas.map(function (e, i) {
       var duracion = e.duracion || duracionEstimada(e.narracion);
-      var escena = componerEscena(e.direccion, duracion, formato, amigoAntes, plan.reparto);
+      var escena = componerEscena(e.direccion, duracion, formato, amigoAntes, plan.reparto, i);
       amigoAntes = escena.personajes.some(function (p) { return p.id === 'amigo'; });
       escena.narracion = e.narracion;
       return escena;
     });
+    // Transición cuando cambia el lugar y, si no, cada 4 escenas: en todas cansaría.
+    lista.forEach(function (escena, i) {
+      if (!i || (escena.fondo === lista[i - 1].fondo && i % 4)) return;
+      var tipo = Stickman.TRANSICIONES[transiciones++ % Stickman.TRANSICIONES.length];
+      escena.transEntra = tipo;
+      lista[i - 1].transSale = tipo;
+    });
+    return lista;
   }
 
   return {

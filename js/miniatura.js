@@ -21,7 +21,11 @@ var Miniatura = (function () {
     { accion: 'señalar', expresion: 'feliz' },
     { accion: 'asustado', expresion: 'sorpresa' },
     { accion: 'pensar', expresion: 'arriba' },
-    { accion: 'celebrar', expresion: 'feliz' }
+    { accion: 'celebrar', expresion: 'feliz' },
+    { accion: 'cabezaExplota', expresion: 'sorpresa' },
+    { accion: 'idea', expresion: 'feliz' },
+    { accion: 'alarma', expresion: 'sorpresa' },
+    { accion: 'victoria', expresion: 'estrellas' }
   ];
   var OBJETO_POR_DEFECTO = 'pregunta';
 

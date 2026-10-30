@@ -8,13 +8,18 @@
 
   var CLAVE_PROYECTO = 'fabricaStickman.proyecto';
   var CLAVE_REPARTO = 'fabricaStickman.reparto';
+  var CLAVE_VOLUMEN = 'fabricaStickman.volumenMusica';
   var COLORES_PERSONAJE = [
     ['#e63946', 'Rojo'], ['#2a6fdb', 'Azul'], ['#2b9348', 'Verde'], ['#7b2cbf', 'Morado'], ['#f77f00', 'Naranja'],
     ['#ff4d8d', 'Rosa'], ['#00a6a6', 'Turquesa'], ['#e9b100', 'Amarillo'], ['#8d5524', 'Café'], ['#1d1d1f', 'Negro']
   ];
   var NOMBRES_ACCESORIO = {
     '': 'Ninguno', lentes: 'Lentes', gorra: 'Gorra', sombrero: 'Sombrero', corbata: 'Corbata', corona: 'Corona',
-    'moño': 'Moño', bigote: 'Bigote', audifonos: 'Audífonos', cabello: 'Cabello'
+    'moño': 'Moño', bigote: 'Bigote', audifonos: 'Audífonos', cabello: 'Cabello',
+    gafasSol: 'Gafas de sol', parche: 'Parche de pirata', casco: 'Casco de obra', astronauta: 'Casco de astronauta',
+    mago: 'Gorro de mago', fiesta: 'Gorro de fiesta', vaquero: 'Sombrero vaquero', chef: 'Gorro de chef',
+    birrete: 'Birrete', pirata: 'Sombrero pirata', orejas: 'Orejas de gato', aureola: 'Aureola', cuernos: 'Cuernos',
+    barba: 'Barba', bufanda: 'Bufanda', capa: 'Capa de héroe', mochila: 'Mochila'
   };
   var TAMANOS = { '16:9': [1280, 720], '9:16': [540, 960] };
   var PAUSA_FINAL = 0.8;
@@ -27,25 +32,25 @@
     etiquetas: ['curiosidades', 'mar', 'ciencia', 'datos curiosos', 'stickman'],
     escenas: [
       { narracion: 'Si toda la sal del mar se esparciera sobre la tierra, formaría una capa de más de 150 metros de alto.',
-        direccion: { fondo: 'cielo', personajes: [{ quien: 'presentador', acciones: [{ accion: 'saludar', expresion: 'feliz' }, { accion: 'sorpresa' }] }],
-          objetos: [{ tipo: 'agua', animacion: 'latir' }], texto: { texto: '150 metros', contar: true } } },
+        direccion: { fondo: 'playa', camara: 'acercar', personajes: [{ quien: 'presentador', acciones: [{ accion: 'saludar', expresion: 'feliz' }, { accion: 'cabezaExplota' }] }],
+          objetos: [{ tipo: 'ola', animacion: 'flotar' }], texto: { texto: '150 metros', contar: true } } },
       { narracion: 'Pero los ríos son de agua dulce. Entonces, ¿de dónde sale tanta sal?',
-        direccion: { fondo: 'cielo', personajes: [{ quien: 'presentador', acciones: [{ accion: 'explicar' }] }, { quien: 'amigo', acciones: [{ accion: 'pensar', dice: '¿Y la sal?' }] }],
-          objetos: [{ tipo: 'pregunta', animacion: 'latir' }] } },
+        direccion: { fondo: 'playa', personajes: [{ quien: 'presentador', acciones: [{ accion: 'explicar' }] }, { quien: 'amigo', acciones: [{ accion: 'dudar', dice: '¿Y la sal?' }] }],
+          objetos: [{ tipo: 'pregunta', animacion: 'rebotar' }] } },
       { narracion: 'Todo empieza con la lluvia. Al caer, el agua se vuelve un poquito ácida y va desgastando las rocas.',
-        direccion: { fondo: 'cielo', personajes: [{ quien: 'presentador', acciones: [{ accion: 'señalar' }, { accion: 'hablar' }] }, { quien: 'amigo', acciones: [{ accion: 'asentir' }] }],
-          objetos: [{ tipo: 'agua', animacion: 'caer' }, { tipo: 'montana', animacion: 'aparecer' }] } },
+        direccion: { fondo: 'bosque', efecto: 'lluvia', personajes: [{ quien: 'presentador', acciones: [{ accion: 'paraguas' }, { accion: 'señalar' }] }, { quien: 'amigo', acciones: [{ accion: 'temblar' }] }],
+          objetos: [{ tipo: 'montana', animacion: 'aparecer' }] } },
       { narracion: 'Los ríos arrastran esos minerales hasta el mar, y ahí se quedan durante millones de años.',
-        direccion: { fondo: 'papel', personajes: [{ quien: 'presentador', acciones: [{ accion: 'explicar' }] }],
-          objetos: [{ tipo: 'flecha', animacion: 'aparecer' }, { tipo: 'reloj', animacion: 'girar' }] } },
+        direccion: { fondo: 'mar', efecto: 'burbujas', personajes: [{ quien: 'presentador', acciones: [{ accion: 'nadar' }, { accion: 'flotar' }] }],
+          objetos: [{ tipo: 'pez', animacion: 'cruzar' }, { tipo: 'relojArena', animacion: 'balancear' }] } },
       { narracion: 'El sol evapora el agua, pero la sal no se evapora. Por eso se va acumulando cada vez más.',
-        direccion: { fondo: 'papel', personajes: [{ quien: 'presentador', acciones: [{ accion: 'señalar' }, { accion: 'explicar' }] }, { quien: 'amigo', acciones: [{ accion: 'sorpresa', dice: '¡Ahora entiendo!' }] }],
+        direccion: { fondo: 'desierto', camara: 'paneo', personajes: [{ quien: 'presentador', acciones: [{ accion: 'apuntarArriba' }, { accion: 'cansado' }] }, { quien: 'amigo', acciones: [{ accion: 'idea', dice: '¡Ahora entiendo!' }] }],
           objetos: [{ tipo: 'sol', animacion: 'girar' }] } },
       { narracion: 'Hoy, cada litro de agua de mar tiene unos 35 gramos de sal. ¡Casi dos cucharadas!',
-        direccion: { fondo: 'pizarra', personajes: [{ quien: 'presentador', acciones: [{ accion: 'celebrar', expresion: 'feliz' }] }, { quien: 'amigo', acciones: [{ accion: 'saltar' }] }],
+        direccion: { fondo: 'laboratorio', camara: 'impacto', personajes: [{ quien: 'presentador', disfraz: 'birrete', acciones: [{ accion: 'mostrar', sostiene: 'matraz', expresion: 'feliz' }] }, { quien: 'amigo', acciones: [{ accion: 'voltereta' }] }],
           texto: { texto: '35 gramos', contar: true }, objetos: [] } },
       { narracion: 'Así que la próxima vez que vayas a la playa, recuerda que esa sal viene de las montañas. ¡Suscríbete para más curiosidades!',
-        direccion: { fondo: 'cielo', personajes: [{ quien: 'presentador', acciones: [{ accion: 'hablar' }, { accion: 'saludar', expresion: 'feliz', dice: '¡Suscríbete!' }] }],
+        direccion: { fondo: 'atardecer', efecto: 'confeti', personajes: [{ quien: 'presentador', acciones: [{ accion: 'hablar' }, { accion: 'saludar', expresion: 'feliz', dice: '¡Suscríbete!' }] }],
           objetos: [{ tipo: 'corazon', animacion: 'latir' }] } }
     ]
   };
@@ -85,6 +90,36 @@
     ocupado = si;
     ['botonCrear', 'botonSugerir', 'botonEjemplo', 'botonVoz', 'selLocutor', 'selMusica', 'botonExportar'].forEach(function (id) { $(id).disabled = si; });
     document.querySelectorAll('.btn-redirigir').forEach(function (b) { b.disabled = si; });
+    mostrarVolumen();
+  }
+
+  /* ---------------- Volumen de la música ---------------- */
+
+  function leerVolumen() {
+    var v = parseInt(localStorage.getItem(CLAVE_VOLUMEN), 10);
+    return v >= 0 && v <= 200 ? v : 100;
+  }
+
+  function mostrarVolumen() {
+    var v = proyecto && typeof proyecto.volumenMusica === 'number' ? proyecto.volumenMusica : leerVolumen();
+    $('volMusica').value = v;
+    $('valorVolumen').textContent = v + '%';
+    $('volMusica').disabled = ocupado || !proyecto || proyecto.musica === 'ninguna';
+  }
+
+  // Volver a mezclar y a saltar el audio en cada pasito del control se oiría
+  // entrecortado: se espera a que deje de moverse.
+  var esperaVolumen = null;
+  function cambiarVolumen(v) {
+    proyecto.volumenMusica = v;
+    $('valorVolumen').textContent = v + '%';
+    clearTimeout(esperaVolumen);
+    esperaVolumen = setTimeout(function () {
+      try { localStorage.setItem(CLAVE_VOLUMEN, String(v)); } catch (e) { /* sin espacio */ }
+      guardar();
+      armarPista();
+      if (reproduciendo) irA(t);
+    }, 150);
   }
 
   /* ---------------- Guardar ---------------- */
@@ -190,7 +225,8 @@
     var largo = total + 1;   // igual que la pista de la voz
     var clave = estilo + '|' + total.toFixed(2);
     if (musica.clave === clave && musica.buffer) {
-      pista = Musica.mezclar(pistaVoz, musica.buffer, largo);
+      var volumen = typeof proyecto.volumenMusica === 'number' ? proyecto.volumenMusica : leerVolumen();
+      pista = Musica.mezclar(pistaVoz, musica.buffer, largo, volumen / 100);
       return Promise.resolve();
     }
     if (musica.clave !== clave) {
@@ -275,6 +311,8 @@
     if (d.objetos.length) partes.push('Objetos: ' + d.objetos.map(function (o) { return o.tipo; }).join(', '));
     if (d.texto) partes.push('Texto: ' + d.texto.texto);
     partes.push('Fondo: ' + d.fondo);
+    if (d.efecto) partes.push('Efecto: ' + d.efecto);
+    if (d.camara) partes.push('Cámara: ' + d.camara);
     return partes.join(' · ');
   }
 
@@ -462,6 +500,7 @@
     $('selColorMiniatura').value = p.miniatura.color;
     $('selLocutor').value = p.locutor;
     $('selMusica').value = p.musica;
+    mostrarVolumen();
     clips = [];
     $('txtTema').value = p.tema || '';
     $('selMinutos').value = String(p.minutos || 1);
@@ -600,9 +639,13 @@
   $('selMusica').addEventListener('change', function () {
     if (!proyecto) return;
     proyecto.musica = this.value;
+    mostrarVolumen();
     guardar();
     armarPista();
     if (reproduciendo) irA(t);
+  });
+  $('volMusica').addEventListener('input', function () {
+    if (proyecto) cambiarVolumen(+this.value);
   });
   ['Presentador', 'Amigo'].forEach(function (sufijo) {
     $('color' + sufijo).innerHTML = COLORES_PERSONAJE.map(function (c) {

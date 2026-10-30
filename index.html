@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fábrica Stickman — videos de curiosidades</title>
   <meta name="description" content="Fábrica de videos de curiosidades con stickman animados.">
-  <link rel="stylesheet" href="css/estilos.css?v=9">
+  <link rel="stylesheet" href="css/estilos.css?v=10">
 </head>
 <body>
   <header class="barra">
@@ -87,6 +87,10 @@
         <label class="campo-en-linea">Música
           <select id="selMusica"></select>
         </label>
+        <label class="campo-en-linea">Volumen
+          <input type="range" id="volMusica" min="0" max="200" step="5" value="100" aria-label="Volumen de la música">
+          <output id="valorVolumen" for="volMusica" class="tiempo">100%</output>
+        </label>
         <button type="button" class="btn btn-principal" id="botonVoz">🎙 Generar voz</button>
       </div>
       <p id="notaVoz" class="nota"></p>
@@ -140,13 +144,13 @@
 
   <div id="avisos" class="avisos" aria-live="polite"></div>
 
-  <script src="js/stickman.js?v=9"></script>
-  <script src="js/ia.js?v=9"></script>
-  <script src="js/voz.js?v=9"></script>
-  <script src="js/musica.js?v=9"></script>
-  <script src="js/exportar.js?v=9"></script>
-  <script src="js/miniatura.js?v=9"></script>
-  <script src="js/director.js?v=9"></script>
-  <script src="js/app.js?v=9"></script>
+  <script src="js/stickman.js?v=10"></script>
+  <script src="js/ia.js?v=10"></script>
+  <script src="js/voz.js?v=10"></script>
+  <script src="js/musica.js?v=10"></script>
+  <script src="js/exportar.js?v=10"></script>
+  <script src="js/miniatura.js?v=10"></script>
+  <script src="js/director.js?v=10"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>

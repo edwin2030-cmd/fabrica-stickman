@@ -73,16 +73,17 @@
   // Escena de prueba con lo elegido en el panel.
   function escenaDePrueba() {
     var accion = $('selAccion').value;
-    var mueve = accion === 'caminar' || accion === 'correr';
+    var mueve = Stickman.MOVILES.indexOf(accion) !== -1;
     var a = { accion: accion, dur: mueve ? 3 : 4 };
     if (mueve) a.hacia = 0.62;
     if ($('selExpresion').value) a.expresion = $('selExpresion').value;
+    if ($('selSostiene').value) a.sostiene = $('selSostiene').value;
     if ($('txtDice').value.trim()) a.dice = $('txtDice').value.trim();
     var per = { id: 'prueba', x: mueve ? 0.22 : 0.38, color: '#e63946', acciones: [a] };
     if ($('selAccesorio').value) per.accesorio = $('selAccesorio').value;
     var objetos = [];
-    if ($('selObjeto').value) objetos.push({ tipo: $('selObjeto').value, x: 0.76, y: 0.34, tam: 0.22, desde: 0.3, animacion: 'flotar' });
-    return { duracion: a.dur, fondo: $('selFondo').value, personajes: [per], objetos: objetos, textos: [] };
+    if ($('selObjeto').value) objetos.push({ tipo: $('selObjeto').value, x: 0.76, y: 0.34, tam: 0.22, desde: 0.3, animacion: $('selAnimacion').value });
+    return { duracion: a.dur, fondo: $('selFondo').value, efecto: $('selEfecto').value, camara: $('selCamara').value, personajes: [per], objetos: objetos, textos: [] };
   }
 
   function dibujar() {
@@ -145,7 +146,11 @@
   opciones($('selAccesorio'), Stickman.ACCESORIOS);
   opciones($('selObjeto'), Stickman.OBJETOS, 'bombilla');
   opciones($('selFondo'), Stickman.FONDOS, 'papel');
-  ['selAccion', 'selExpresion', 'selAccesorio', 'selObjeto', 'selFondo'].forEach(function (id) {
+  opciones($('selSostiene'), Stickman.OBJETOS);
+  opciones($('selAnimacion'), ['flotar', 'aparecer', 'latir', 'girar', 'temblar', 'caer', 'rebotar', 'cruzar', 'orbitar', 'balancear', 'crecer', 'explotar'], 'flotar');
+  opciones($('selEfecto'), Stickman.EFECTOS);
+  opciones($('selCamara'), Stickman.CAMARAS, 'normal');
+  ['selAccion', 'selExpresion', 'selAccesorio', 'selObjeto', 'selFondo', 'selSostiene', 'selAnimacion', 'selEfecto', 'selCamara'].forEach(function (id) {
     $(id).addEventListener('change', cambiarEscena);
   });
   $('txtDice').addEventListener('input', cambiarEscena);

@@ -53,6 +53,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
 
 #linea { flex: 1 1 200px; accent-color: var(--acento); }
 .tiempo { font-variant-numeric: tabular-nums; color: var(--suave); min-width: 64px; text-align: right; }
+#volMusica { width: 130px; accent-color: var(--acento); }
+#valorVolumen { min-width: 44px; }
 
 .panel-probar { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); }
 .panel-probar label { display: block; font-size: .82rem; font-weight: 600; color: var(--suave); }

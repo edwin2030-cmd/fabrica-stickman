@@ -31,6 +31,21 @@ var Musica = (function () {
       nombre: 'Tranquila', tempo: 76, percusion: false, onda: 'sine',
       acordes: [[F - 12, A - 12, C, E], [E - 12, G - 12, B - 12, D], [D - 12, F - 12, A - 12, C], [C - 12, E - 12, G - 12, B - 12]],
       patron: [0, 1, 2, 3, 2, 1, 2, 3]
+    },
+    aventura: {
+      nombre: 'Aventura', tempo: 118, percusion: true, onda: 'triangle',
+      acordes: [[D - 12, F - 12, A - 12], [B - 24, D - 12, F - 12], [G - 12, B - 12, D], [A - 12, C, E]],
+      patron: [0, 0, 2, 0, 1, 0, 2, 1]
+    },
+    fiesta: {
+      nombre: 'Fiesta', tempo: 128, percusion: true, onda: 'square',
+      acordes: [[C, E, G], [A - 12, C, E], [F - 12, A - 12, C], [G - 12, B - 12, D]],
+      patron: [0, 2, 1, 2, 0, 2, 1, 2]
+    },
+    suspenso: {
+      nombre: 'Suspenso', tempo: 66, percusion: false, onda: 'sine',
+      acordes: [[A - 24, C - 12, E - 12], [A - 24, D - 12, F - 12], [G - 24, B - 24, E - 12], [A - 24, C - 12, E - 12]],
+      patron: [0, 2, 1, 2, 0, 1, 2, 1]
     }
   };
 
@@ -143,9 +158,19 @@ var Musica = (function () {
     });
   }
 
+  // Los golpes que pasarían del máximo se redondean: a volumen alto, cortarlos de golpe suena roto.
+  function sinRecorte(x) {
+    var a = Math.abs(x), UMBRAL = 0.8;
+    if (a <= UMBRAL) return x;
+    var r = UMBRAL + (1 - UMBRAL) * Math.tanh((a - UMBRAL) / (1 - UMBRAL));
+    return x < 0 ? -r : r;
+  }
+
   // Mezcla voz y música en una pista nueva. La música baja cuando hay voz
   // (se mide la voz en bloques de ~40 ms y el volumen cambia con suavidad).
-  function mezclar(voz, musica, largoSeg) {
+  // "volumen": 1 = normal, 0 = sin música, 2 = el doble.
+  function mezclar(voz, musica, largoSeg, volumen) {
+    if (typeof volumen !== 'number') volumen = 1;
     var largo = voz ? voz.length : Math.ceil(largoSeg * FRECUENCIA);
     var frecuencia = voz ? voz.sampleRate : FRECUENCIA;
     var salida = new AudioBuffer({ length: largo, numberOfChannels: 1, sampleRate: frecuencia });
@@ -154,17 +179,17 @@ var Musica = (function () {
     var m = musica ? musica.getChannelData(0) : null;
 
     var BLOQUE = Math.round(frecuencia * 0.04);
-    var nivel = NIVEL;
+    var nivel = NIVEL * volumen;
     for (var inicio = 0; inicio < largo; inicio += BLOQUE) {
       var fin = Math.min(largo, inicio + BLOQUE), hablando = false;
       if (v) for (var j = inicio; j < fin; j += 4) if (Math.abs(v[j]) > 0.02) { hablando = true; break; }
-      var objetivo = hablando ? NIVEL_CON_VOZ : NIVEL;
+      var objetivo = (hablando ? NIVEL_CON_VOZ : NIVEL) * volumen;
       // Baja rápido cuando empieza la voz y sube despacio cuando termina.
       var siguiente = nivel + (objetivo - nivel) * (objetivo < nivel ? 0.5 : 0.08);
       for (var k = inicio; k < fin; k++) {
         var g = nivel + (siguiente - nivel) * (k - inicio) / (fin - inicio);
         var muestra = (v ? v[k] : 0) + (m && k < m.length ? m[k] * g : 0);
-        out[k] = Math.max(-1, Math.min(1, muestra));
+        out[k] = sinRecorte(muestra);
       }
       nivel = siguiente;
     }
